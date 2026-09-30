@@ -23,6 +23,7 @@ Create and preview a production build:
 ## Project map
 
 - src/App.jsx: form, plant list, add/edit/delete actions, validation and empty state
+- src/PlantTypePicker.jsx and src/plantTypes.js: the multi-select dropdown of indoor plant types
 - src/storage.js: safe JSON read/write helpers for this browser
 - src/styles.css: responsive styles
 - docs/implementation-plan.md: the slice-by-slice build plan
