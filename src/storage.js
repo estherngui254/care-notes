@@ -1,6 +1,6 @@
-const STORAGE_KEY = 'workshop-mvp-records'
+const STORAGE_KEY = 'plant-care-notes-plants'
 
-export function readRecords() {
+export function readPlants() {
   try {
     const saved = window.localStorage.getItem(STORAGE_KEY)
     if (!saved) return []
@@ -11,9 +11,9 @@ export function readRecords() {
   }
 }
 
-export function writeRecords(records) {
+export function writePlants(plants) {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records))
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(plants))
     return true
   } catch {
     return false

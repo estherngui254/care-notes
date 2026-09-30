@@ -1,40 +1,40 @@
 import { useEffect, useState } from 'react'
-import { readRecords, writeRecords } from './storage.js'
+import { readPlants, writePlants } from './storage.js'
 
-const emptyForm = { title: '', details: '' }
+const emptyForm = { name: '', careNote: '' }
 
 export default function App() {
-  const [records, setRecords] = useState(readRecords)
+  const [plants, setPlants] = useState(readPlants)
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
   const [error, setError] = useState('')
   const [storageWarning, setStorageWarning] = useState(false)
 
   useEffect(() => {
-    setStorageWarning(!writeRecords(records))
-  }, [records])
+    setStorageWarning(!writePlants(plants))
+  }, [plants])
 
   function handleChange(event) {
     const { name, value } = event.target
     setForm((current) => ({ ...current, [name]: value }))
-    if (name === 'title' && value.trim()) setError('')
+    if (name === 'name' && value.trim()) setError('')
   }
 
   function handleSubmit(event) {
     event.preventDefault()
-    const title = form.title.trim()
-    if (!title) {
-      setError('Enter a title before saving.')
+    const name = form.name.trim()
+    if (!name) {
+      setError('Enter a plant name before saving.')
       return
     }
     if (editingId) {
-      setRecords((current) => current.map((record) =>
-        record.id === editingId ? { ...record, title, details: form.details.trim() } : record,
+      setPlants((current) => current.map((plant) =>
+        plant.id === editingId ? { ...plant, name, careNote: form.careNote.trim() } : plant,
       ))
       setEditingId(null)
     } else {
-      setRecords((current) => [
-        { id: crypto.randomUUID(), title, details: form.details.trim(), createdAt: new Date().toISOString() },
+      setPlants((current) => [
+        { id: crypto.randomUUID(), name, careNote: form.careNote.trim(), createdAt: new Date().toISOString() },
         ...current,
       ])
     }
@@ -42,11 +42,11 @@ export default function App() {
     setError('')
   }
 
-  function startEdit(record) {
-    setEditingId(record.id)
-    setForm({ title: record.title, details: record.details })
+  function startEdit(plant) {
+    setEditingId(plant.id)
+    setForm({ name: plant.name, careNote: plant.careNote })
     setError('')
-    document.getElementById('record-title')?.focus()
+    document.getElementById('plant-name')?.focus()
   }
 
   function cancelEdit() {
@@ -55,35 +55,35 @@ export default function App() {
     setError('')
   }
 
-  function deleteRecord(id) {
-    setRecords((current) => current.filter((record) => record.id !== id))
+  function deletePlant(id) {
+    setPlants((current) => current.filter((plant) => plant.id !== id))
     if (editingId === id) cancelEdit()
   }
 
   return (
     <main className="shell">
       <header className="hero">
-        <p className="eyebrow">THREE-DAY VIBE CODING WORKSHOP</p>
-        <h1>Workshop MVP Starter</h1>
-        <p className="intro">A small React app for practicing one complete record workflow. Adapt the fields and labels to your project.</p>
+        <p className="eyebrow">HOUSEPLANT CARE</p>
+        <h1>Plant Care Notes</h1>
+        <p className="intro">Keep a short care note for each of your houseplants, all in one place.</p>
       </header>
 
       <section className="panel" aria-labelledby="form-heading">
-        <h2 id="form-heading">{editingId ? 'Edit record' : 'Add a record'}</h2>
+        <h2 id="form-heading">{editingId ? 'Edit plant' : 'Add a plant'}</h2>
         <form onSubmit={handleSubmit} noValidate>
-          <label htmlFor="record-title">Title <span aria-hidden="true">*</span></label>
-          <input id="record-title" name="title" value={form.title} onChange={handleChange}
-            maxLength={80} aria-invalid={Boolean(error)} aria-describedby={error ? 'title-error' : 'title-help'} />
-          {error ? <p className="error" id="title-error" role="alert">{error}</p> :
-            <p className="hint" id="title-help">Required. Keep it under 80 characters.</p>}
+          <label htmlFor="plant-name">Plant name <span aria-hidden="true">*</span></label>
+          <input id="plant-name" name="name" value={form.name} onChange={handleChange}
+            maxLength={80} aria-invalid={Boolean(error)} aria-describedby={error ? 'name-error' : 'name-help'} />
+          {error ? <p className="error" id="name-error" role="alert">{error}</p> :
+            <p className="hint" id="name-help">Required. Keep it under 80 characters.</p>}
 
-          <label htmlFor="record-details">Details</label>
-          <textarea id="record-details" name="details" value={form.details} onChange={handleChange}
+          <label htmlFor="plant-care-note">Care note</label>
+          <textarea id="plant-care-note" name="careNote" value={form.careNote} onChange={handleChange}
             rows="3" maxLength={240} />
-          <p className="hint">Optional. Do not enter sensitive personal information.</p>
+          <p className="hint">For example: water weekly, bright indirect light. Do not enter sensitive personal information.</p>
 
           <div className="actions">
-            <button type="submit">{editingId ? 'Save changes' : 'Add record'}</button>
+            <button type="submit">{editingId ? 'Save changes' : 'Save plant'}</button>
             {editingId && <button type="button" className="secondary" onClick={cancelEdit}>Cancel</button>}
           </div>
         </form>
@@ -91,27 +91,27 @@ export default function App() {
 
       {storageWarning && <p className="notice" role="status">This browser could not save changes. Your list may not survive a refresh.</p>}
 
-      <section className="records" aria-labelledby="records-heading">
+      <section className="records" aria-labelledby="plants-heading">
         <div className="section-heading">
-          <div><p className="eyebrow">YOUR LOCAL DATA</p><h2 id="records-heading">Records <span className="count">{records.length}</span></h2></div>
+          <div><p className="eyebrow">YOUR PLANTS</p><h2 id="plants-heading">Plants <span className="count">{plants.length}</span></h2></div>
         </div>
-        {records.length === 0 ? (
-          <div className="empty"><h3>No records yet</h3><p>Add a record above to try the workflow. Saved records stay in this browser.</p></div>
+        {plants.length === 0 ? (
+          <div className="empty"><h3>No plants yet</h3><p>Add a plant above. Saved plants stay in this browser.</p></div>
         ) : (
           <ul className="record-list">
-            {records.map((record) => (
-              <li className="record" key={record.id}>
-                <div className="record-copy"><h3>{record.title}</h3>{record.details && <p>{record.details}</p>}</div>
+            {plants.map((plant) => (
+              <li className="record" key={plant.id}>
+                <div className="record-copy"><h3>{plant.name}</h3>{plant.careNote && <p>{plant.careNote}</p>}</div>
                 <div className="record-actions">
-                  <button type="button" className="secondary" onClick={() => startEdit(record)}>Edit</button>
-                  <button type="button" className="danger" onClick={() => deleteRecord(record.id)}>Delete</button>
+                  <button type="button" className="secondary" onClick={() => startEdit(plant)}>Edit</button>
+                  <button type="button" className="danger" onClick={() => deletePlant(plant.id)}>Delete</button>
                 </div>
               </li>
             ))}
           </ul>
         )}
       </section>
-      <footer><p>Learning scaffold only. Browser storage is local to this origin and is not a secure or shared database.</p></footer>
+      <footer><p>Plants are saved in this browser only. Browser storage is not a secure or shared database.</p></footer>
     </main>
   )
 }
