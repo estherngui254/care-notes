@@ -1,14 +1,12 @@
-# Vibe Coding SDLC Starter
+# Plant Care Notes
 
-A React + Vite app for the three-day workshop. It demonstrates one local record workflow: create, view, edit, delete, required-title validation, an empty state, and browser storage.
+A small React + Vite app for keeping a short care note for each houseplant. Add a plant with a name and care note, view the list, edit a plant, and delete it. Plants are saved in this browser with localStorage, so they remain after a refresh.
 
 ## Requirements
 
 - Node.js 20.19+ or 22.12+
 - npm
-- VS Code and a modern browser
-
-Vite requirements can change; check https://vite.dev/guide/ before a future workshop.
+- A modern browser
 
 ## Run locally
 
@@ -22,19 +20,14 @@ Create and preview a production build:
     npm run build
     npm run preview
 
-## Starter map
+## Project map
 
-- src/App.jsx: form, list, create/edit/delete actions, and UI states
+- src/App.jsx: form, plant list, add/edit/delete actions, validation and empty state
 - src/storage.js: safe JSON read/write helpers for this browser
-- src/styles.css: responsive baseline styles
-- vite.config.js: Vite React plugin setup
+- src/styles.css: responsive styles
+- docs/implementation-plan.md: the slice-by-slice build plan
+- WORKSHOP-CHECKS.md: manual acceptance checks
 
-## Workshop use
+## Scope
 
-1. Run the app and inspect its behavior.
-2. Map each behavior to an acceptance criterion.
-3. Choose and plan your own project; adapt record fields and labels.
-4. Make one focused AI-assisted change at a time.
-5. Inspect the diff and test before committing.
-
-This is a teaching scaffold, not a production backend. Browser storage is specific to this browser and site origin; it is not encrypted, shared, or suitable for secrets or sensitive information. Clearing site data deletes these records.
+This is a small MVP. It has no accounts, sync, reminders, plant identification, photos or backend. Browser storage is specific to this browser and site origin. It is not encrypted or shared, and it is not suitable for sensitive information. Clearing site data deletes the saved plants.
