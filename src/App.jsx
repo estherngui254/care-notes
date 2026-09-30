@@ -60,6 +60,12 @@ export default function App() {
     setErrors({})
   }
 
+  function focusForm() {
+    const field = document.getElementById('plant-name')
+    field?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    field?.focus({ preventScroll: true })
+  }
+
   function deletePlant(id) {
     setPlants((current) => current.filter((plant) => plant.id !== id))
     if (editingId === id) cancelEdit()
@@ -103,7 +109,11 @@ export default function App() {
           <div><p className="eyebrow">YOUR PLANTS</p><h2 id="plants-heading">Plants <span className="count">{plants.length}</span></h2></div>
         </div>
         {plants.length === 0 ? (
-          <div className="empty"><h3>No plants yet</h3><p>Add a plant above. Saved plants stay in this browser.</p></div>
+          <div className="empty">
+            <h3>No plants saved yet</h3>
+            <p>Add your first plant to keep its care notes in one place.</p>
+            <button type="button" onClick={focusForm}>Add your first plant</button>
+          </div>
         ) : (
           <ul className="record-list">
             {plants.map((plant) => (
