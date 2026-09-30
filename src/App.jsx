@@ -4,7 +4,7 @@ import MultiSelect from './MultiSelect.jsx'
 import { PLANT_TYPES } from './plantTypes.js'
 import { CARE_RECOMMENDATIONS } from './careRecommendations.js'
 
-const emptyForm = { name: '', careNote: '', lastWatered: '', plantType: '', recommendations: [] }
+const emptyForm = { name: '', careNote: '', lastWatered: '', recommendations: [] }
 
 function todayString() {
   const now = new Date()
@@ -39,23 +39,25 @@ export default function App() {
     event.preventDefault()
     const name = form.name.trim()
     const careNote = form.careNote.trim()
-    const { lastWatered, plantType, recommendations } = form
+    const { lastWatered, recommendations } = form
     const nextErrors = {}
     if (!name) nextErrors.name = 'Enter a plant name before saving.'
-    if (!careNote) nextErrors.careNote = 'Enter a care note before saving.'
+    if (!careNote && recommendations.length === 0) {
+      nextErrors.careNote = 'Add a care note: choose a recommendation or type your own.'
+    }
     if (nextErrors.name || nextErrors.careNote) {
       setErrors(nextErrors)
-      document.getElementById(nextErrors.name ? 'plant-name' : 'plant-care-note')?.focus()
+      document.getElementById(nextErrors.name ? 'plant-name' : 'care-recommendations')?.focus()
       return
     }
     if (editingId) {
       setPlants((current) => current.map((plant) =>
-        plant.id === editingId ? { ...plant, name, careNote, lastWatered, plantType, recommendations } : plant,
+        plant.id === editingId ? { ...plant, name, careNote, lastWatered, recommendations } : plant,
       ))
       setEditingId(null)
     } else {
       setPlants((current) => [
-        { id: crypto.randomUUID(), name, careNote, lastWatered, plantType, recommendations, createdAt: new Date().toISOString() },
+        { id: crypto.randomUUID(), name, careNote, lastWatered, recommendations, createdAt: new Date().toISOString() },
         ...current,
       ])
     }
@@ -69,7 +71,6 @@ export default function App() {
       name: plant.name,
       careNote: plant.careNote,
       lastWatered: plant.lastWatered ?? '',
-      plantType: plant.plantType ?? '',
       recommendations: plant.recommendations ?? [],
     })
     setErrors({})
@@ -106,29 +107,29 @@ export default function App() {
         <form onSubmit={handleSubmit} noValidate>
           <label htmlFor="plant-name">Plant name <span aria-hidden="true">*</span></label>
           <input id="plant-name" name="name" value={form.name} onChange={handleChange}
+            list="plant-type-options" autoComplete="off"
             maxLength={80} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? 'name-error' : 'name-help'} />
+          <datalist id="plant-type-options">
+            {PLANT_TYPES.map((type) => <option key={type} value={type} />)}
+          </datalist>
           {errors.name ? <p className="error" id="name-error" role="alert">{errors.name}</p> :
-            <p className="hint" id="name-help">Required. Keep it under 80 characters.</p>}
+            <p className="hint" id="name-help">Required. Pick an indoor plant from the list or type your own name. Keep it under 80 characters.</p>}
 
-          <label htmlFor="plant-care-note">Care note <span aria-hidden="true">*</span></label>
+          <label htmlFor="care-recommendations">Care note <span aria-hidden="true">*</span></label>
+          <MultiSelect id="care-recommendations" options={CARE_RECOMMENDATIONS} value={form.recommendations}
+            placeholder="Choose care recommendations" groupLabel="Care recommendations"
+            invalid={Boolean(errors.careNote)} describedBy={errors.careNote ? 'care-note-error' : 'care-note-help'}
+            onChange={(recommendations) => {
+              setForm((current) => ({ ...current, recommendations }))
+              if (recommendations.length > 0) setErrors((current) => ({ ...current, careNote: '' }))
+            }} />
+
+          <label className="sub-label" htmlFor="plant-care-note">Other care</label>
           <textarea id="plant-care-note" name="careNote" value={form.careNote} onChange={handleChange}
             rows="3" maxLength={240} aria-invalid={Boolean(errors.careNote)}
             aria-describedby={errors.careNote ? 'care-note-error' : 'care-note-help'} />
           {errors.careNote ? <p className="error" id="care-note-error" role="alert">{errors.careNote}</p> :
-            <p className="hint" id="care-note-help">Required. For example: water weekly, bright indirect light. Do not enter sensitive personal information.</p>}
-
-          <label htmlFor="plant-type">Plant type</label>
-          <select id="plant-type" name="plantType" value={form.plantType} onChange={handleChange}>
-            <option value="">Choose a plant type</option>
-            {PLANT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
-          </select>
-          <p className="hint">Optional. Choose one indoor plant type. You can still type your own name above.</p>
-
-          <label htmlFor="care-recommendations">Care recommendations</label>
-          <MultiSelect id="care-recommendations" options={CARE_RECOMMENDATIONS} value={form.recommendations}
-            placeholder="Choose recommendations" groupLabel="Care recommendations"
-            onChange={(recommendations) => setForm((current) => ({ ...current, recommendations }))} />
-          <p className="hint">Optional. Choose as many as apply.</p>
+            <p className="hint" id="care-note-help">Required: choose at least one recommendation or type your own care above. Choose as many recommendations as apply. Do not enter sensitive personal information.</p>}
 
           <label htmlFor="plant-last-watered">Last watered</label>
           <input id="plant-last-watered" name="lastWatered" type="date" value={form.lastWatered}
@@ -159,7 +160,6 @@ export default function App() {
             {plants.map((plant) => (
               <li className="record" key={plant.id}>
                 <div className="record-copy"><h3>{plant.name}</h3>
-                  {plant.plantType && <p className="plant-type">{plant.plantType}</p>}
                   {plant.careNote && <p>{plant.careNote}</p>}
                   {plant.recommendations?.length > 0 && (
                     <ul className="chips" aria-label="Care recommendations">

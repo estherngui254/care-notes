@@ -1,5 +1,10 @@
 const STORAGE_KEY = 'plant-care-notes-plants'
 
+function mergeType(name, type) {
+  if (typeof type !== 'string' || !type || name.toLowerCase().includes(type.toLowerCase())) return name
+  return `${name} (${type})`.slice(0, 80)
+}
+
 export function readPlants() {
   try {
     const saved = window.localStorage.getItem(STORAGE_KEY)
@@ -8,11 +13,10 @@ export function readPlants() {
     if (!Array.isArray(parsed)) return []
     return parsed.filter((plant) => plant && typeof plant.id === 'string'
       && typeof plant.name === 'string' && typeof plant.careNote === 'string')
-      .map(({ plantTypes, ...plant }) => ({
+      .map(({ plantTypes, plantType, ...plant }) => ({
         ...plant,
-        // Plants saved with the earlier multi-select keep their first type.
-        plantType: typeof plant.plantType === 'string' ? plant.plantType
-          : (Array.isArray(plantTypes) && typeof plantTypes[0] === 'string' ? plantTypes[0] : ''),
+        // The plant type is now part of the name, so older records fold it in.
+        name: mergeType(plant.name, typeof plantType === 'string' ? plantType : plantTypes?.[0]),
         recommendations: Array.isArray(plant.recommendations)
           ? plant.recommendations.filter((item) => typeof item === 'string') : [],
       }))

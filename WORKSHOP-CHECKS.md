@@ -7,7 +7,7 @@ Run these manually in the browser (`npm run dev`) and record each result. Start 
 | # | Check | Steps | Expected | Result |
 |---|-------|-------|----------|--------|
 | 1 | Save a plant | Enter a plant name and care note, then select **Save plant**. | The plant appears in the list with both name and care note visible. | |
-| 2 | Required fields | Try to save with the name blank, then with the care note blank, then with only spaces. | Nothing is saved. A message names the missing field and focus moves to it. | |
+| 2 | Required fields | Try to save with the name blank, then with no recommendation and no other care, then with only spaces. | Nothing is saved. A message names the missing field and focus moves to it. | |
 | 3 | Edit a plant | Select **Edit** on a plant, change the name or care note, then select **Save changes**. | The updated details appear in the list. | |
 | 4 | Delete a plant | Delete a plant, then delete the last remaining one. | The plant disappears. Deleting the last one shows the empty state. | |
 | 5 | Persistence | Add a plant, refresh the browser. Edit it, refresh again. | The saved details are still visible after each refresh. | |
@@ -26,8 +26,9 @@ Run these manually in the browser (`npm run dev`) and record each result. Start 
 | # | Check | Steps | Expected | Result |
 |---|-------|-------|----------|--------|
 | 10 | Last watered | Add a plant with a last watered date, then edit the date. Also add one with no date. Refresh. | The date shows under the care note, updates after editing, and survives a refresh. A plant without a date shows no watered line. Future dates can't be picked. | |
-| 11 | Plant type (single) | Open **Plant type** and choose one type, then save. Edit the plant and choose a different type. Refresh. | Only one type can be chosen at a time. It shows under the plant name, is pre-selected when editing, and survives a refresh. | |
-| 12 | Care recommendations (multiple) | Open **Care recommendations**, select two or more, and save. Edit the plant and change the selection. Press Escape and click outside to close the list. Refresh. | The selections show as tags under the care note, are pre-selected when editing, and survive a refresh. The list closes on Escape and on an outside click. **Clear selection** empties it. | |
+| 11 | Plant name list | Click the **Plant name** box and pick an indoor plant from the list. Then type a name that isn't in the list, and save each. | Both a listed plant and a typed name save as the plant name. Only one name is set per plant. | |
+| 12 | Care note recommendations (multiple) | Under **Care note**, open the dropdown, select two or more recommendations, and save. Edit the plant and change the selection. Press Escape and click outside to close the list. Refresh. | The selections show as tags in the list, are pre-selected when editing, and survive a refresh. The list closes on Escape and on an outside click. **Clear selection** empties it. | |
+| 13 | Other care | Leave the recommendations empty, type text in **Other care**, and save. Then try with both empty. | Typed care alone saves. Recommendations alone save. With both empty, nothing saves and a message asks for a care note. | |
 
 ## Main workflow run
 

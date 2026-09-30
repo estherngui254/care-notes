@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-export default function MultiSelect({ id, options, value, onChange, placeholder, groupLabel }) {
+export default function MultiSelect({ id, options, value, onChange, placeholder, groupLabel, invalid, describedBy }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
 
@@ -34,6 +34,7 @@ export default function MultiSelect({ id, options, value, onChange, placeholder,
     <div className="picker" ref={rootRef}>
       <button type="button" className="secondary picker-toggle" id={id}
         aria-haspopup="true" aria-expanded={open} aria-controls={panelId}
+        aria-invalid={invalid || undefined} aria-describedby={describedBy}
         onClick={() => setOpen((current) => !current)}>
         <span>{label}</span><span aria-hidden="true">{open ? '▲' : '▼'}</span>
       </button>
