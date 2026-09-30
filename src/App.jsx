@@ -1,86 +1,65 @@
-import { useEffect, useState } from 'react'
-import { readPlants, writePlants } from './storage.js'
-import MultiSelect from './MultiSelect.jsx'
-import { PLANT_TYPES } from './plantTypes.js'
-import { CARE_RECOMMENDATIONS } from './careRecommendations.js'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { buildBackup, parseBackup, readPlants, readTheme, writePlants, writeTheme } from './storage.js'
+import { filterPlants, sortPlants, todayString, wateringStatus } from './plantUtils.js'
+import PlantForm from './PlantForm.jsx'
+import PlantCard from './PlantCard.jsx'
+import PlantControls from './PlantControls.jsx'
 
-const emptyForm = { name: '', careNote: '', lastWatered: '', recommendations: [] }
-
-function todayString() {
-  const now = new Date()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${now.getFullYear()}-${month}-${day}`
-}
-
-function formatDate(value) {
-  const [year, month, day] = value.split('-').map(Number)
-  return new Date(year, month - 1, day).toLocaleDateString(undefined, { dateStyle: 'medium' })
-}
+const UNDO_MS = 8000
 
 export default function App() {
   const [plants, setPlants] = useState(readPlants)
-  const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
-  const [errors, setErrors] = useState({})
+  const [formKey, setFormKey] = useState(0)
+  const [query, setQuery] = useState('')
+  const [recommendation, setRecommendation] = useState('')
+  const [sort, setSort] = useState('newest')
+  const [undo, setUndo] = useState(null)
+  const [backupMessage, setBackupMessage] = useState('')
+  const [theme, setTheme] = useState(readTheme)
   const [storageWarning, setStorageWarning] = useState(false)
+  const importRef = useRef(null)
 
   useEffect(() => {
     setStorageWarning(!writePlants(plants))
   }, [plants])
 
-  function handleChange(event) {
-    const { name, value } = event.target
-    setForm((current) => ({ ...current, [name]: value }))
-    if (value.trim()) setErrors((current) => ({ ...current, [name]: '' }))
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+  }, [theme])
+
+  useEffect(() => {
+    if (!undo) return undefined
+    const timer = setTimeout(() => setUndo(null), UNDO_MS)
+    return () => clearTimeout(timer)
+  }, [undo])
+
+  const today = todayString()
+  const editingPlant = plants.find((plant) => plant.id === editingId) ?? null
+  const filtering = Boolean(query.trim() || recommendation)
+  const visiblePlants = useMemo(
+    () => sortPlants(filterPlants(plants, { query, recommendation }), sort, today),
+    [plants, query, recommendation, sort, today],
+  )
+  const thirsty = plants.filter((plant) => wateringStatus(plant, today).needsWater)
+
+  function resetForm() {
+    setEditingId(null)
+    setFormKey((current) => current + 1)
   }
 
-  function handleSubmit(event) {
-    event.preventDefault()
-    const name = form.name.trim()
-    const careNote = form.careNote.trim()
-    const { lastWatered, recommendations } = form
-    const nextErrors = {}
-    if (!name) nextErrors.name = 'Enter a plant name before saving.'
-    if (!careNote && recommendations.length === 0) {
-      nextErrors.careNote = 'Add a care note: choose a recommendation or type your own.'
-    }
-    if (nextErrors.name || nextErrors.careNote) {
-      setErrors(nextErrors)
-      document.getElementById(nextErrors.name ? 'plant-name' : 'care-recommendations')?.focus()
-      return
-    }
-    if (editingId) {
-      setPlants((current) => current.map((plant) =>
-        plant.id === editingId ? { ...plant, name, careNote, lastWatered, recommendations } : plant,
-      ))
-      setEditingId(null)
+  function handleSubmit(values) {
+    if (editingPlant) {
+      setPlants((current) => current.map((plant) => (plant.id === editingPlant.id ? { ...plant, ...values } : plant)))
     } else {
-      setPlants((current) => [
-        { id: crypto.randomUUID(), name, careNote, lastWatered, recommendations, createdAt: new Date().toISOString() },
-        ...current,
-      ])
+      setPlants((current) => [{ id: crypto.randomUUID(), ...values, createdAt: new Date().toISOString() }, ...current])
     }
-    setForm(emptyForm)
-    setErrors({})
+    resetForm()
   }
 
   function startEdit(plant) {
     setEditingId(plant.id)
-    setForm({
-      name: plant.name,
-      careNote: plant.careNote,
-      lastWatered: plant.lastWatered ?? '',
-      recommendations: plant.recommendations ?? [],
-    })
-    setErrors({})
-    document.getElementById('plant-name')?.focus()
-  }
-
-  function cancelEdit() {
-    setEditingId(null)
-    setForm(emptyForm)
-    setErrors({})
+    setFormKey((current) => current + 1)
   }
 
   function focusForm() {
@@ -89,93 +68,148 @@ export default function App() {
     field?.focus({ preventScroll: true })
   }
 
-  function deletePlant(id) {
-    setPlants((current) => current.filter((plant) => plant.id !== id))
-    if (editingId === id) cancelEdit()
+  function deletePlant(plant) {
+    const index = plants.findIndex((item) => item.id === plant.id)
+    setPlants((current) => current.filter((item) => item.id !== plant.id))
+    setUndo({ plant, index })
+    if (editingId === plant.id) resetForm()
+  }
+
+  function undoDelete() {
+    if (!undo) return
+    const { plant, index } = undo
+    setPlants((current) => {
+      const next = [...current]
+      next.splice(Math.min(index, next.length), 0, plant)
+      return next
+    })
+    setUndo(null)
+  }
+
+  function clearFilters() {
+    setQuery('')
+    setRecommendation('')
+  }
+
+  function exportBackup() {
+    const blob = new Blob([buildBackup(plants)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `plant-care-notes-${today}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+    setBackupMessage(`Exported ${plants.length} ${plants.length === 1 ? 'plant' : 'plants'}.`)
+  }
+
+  async function importBackup(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    const result = parseBackup(await file.text())
+    if (result.error) {
+      setBackupMessage(result.error)
+      return
+    }
+    const known = new Set(plants.map((plant) => plant.id))
+    const fresh = result.plants.filter((plant) => !known.has(plant.id))
+    setPlants((current) => [...fresh, ...current])
+    const duplicates = result.plants.length - fresh.length
+    const parts = [`Imported ${fresh.length} ${fresh.length === 1 ? 'plant' : 'plants'}.`]
+    if (duplicates > 0) parts.push(`${duplicates} already saved.`)
+    if (result.skipped > 0) parts.push(`${result.skipped} could not be read.`)
+    setBackupMessage(parts.join(' '))
   }
 
   return (
     <main className="shell">
       <header className="hero">
-        <p className="eyebrow">HOUSEPLANT CARE</p>
+        <div className="hero-top">
+          <p className="eyebrow">HOUSEPLANT CARE</p>
+          <button type="button" className="secondary theme-toggle no-print"
+            onClick={() => setTheme((current) => {
+              const next = current === 'dark' ? 'light' : 'dark'
+              writeTheme(next)
+              return next
+            })}>
+            {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          </button>
+        </div>
         <h1>Plant Care Notes</h1>
         <p className="intro">Keep a short care note for each of your houseplants, all in one place.</p>
       </header>
 
-      <section className="panel" aria-labelledby="form-heading">
-        <h2 id="form-heading">{editingId ? 'Edit plant' : 'Add a plant'}</h2>
-        <form onSubmit={handleSubmit} noValidate>
-          <label htmlFor="plant-name">Plant name <span aria-hidden="true">*</span></label>
-          <input id="plant-name" name="name" value={form.name} onChange={handleChange}
-            list="plant-type-options" autoComplete="off"
-            maxLength={80} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? 'name-error' : 'name-help'} />
-          <datalist id="plant-type-options">
-            {PLANT_TYPES.map((type) => <option key={type} value={type} />)}
-          </datalist>
-          {errors.name ? <p className="error" id="name-error" role="alert">{errors.name}</p> :
-            <p className="hint" id="name-help">Required. Pick an indoor plant from the list or type your own name. Keep it under 80 characters.</p>}
-
-          <label id="care-recommendations-label" htmlFor="care-recommendations">Care note <span aria-hidden="true">*</span></label>
-          <MultiSelect id="care-recommendations" labelId="care-recommendations-label" options={CARE_RECOMMENDATIONS} value={form.recommendations}
-            placeholder="Choose care recommendations" groupLabel="Care recommendations"
-            invalid={Boolean(errors.careNote)} describedBy={errors.careNote ? 'care-note-error' : 'care-note-help'}
-            onChange={(recommendations) => {
-              setForm((current) => ({ ...current, recommendations }))
-              if (recommendations.length > 0) setErrors((current) => ({ ...current, careNote: '' }))
-            }} />
-
-          <label className="sub-label" htmlFor="plant-care-note">Other care</label>
-          <textarea id="plant-care-note" name="careNote" value={form.careNote} onChange={handleChange}
-            rows="3" maxLength={240} aria-invalid={Boolean(errors.careNote)}
-            aria-describedby={errors.careNote ? 'care-note-error' : 'care-note-help'} />
-          {errors.careNote ? <p className="error" id="care-note-error" role="alert">{errors.careNote}</p> :
-            <p className="hint" id="care-note-help">Required: choose at least one recommendation or type your own care above. Choose as many recommendations as apply. Do not enter sensitive personal information.</p>}
-
-          <label htmlFor="plant-last-watered">Last watered</label>
-          <input id="plant-last-watered" name="lastWatered" type="date" value={form.lastWatered}
-            onChange={handleChange} max={todayString()} aria-describedby="last-watered-help" />
-          <p className="hint" id="last-watered-help">Optional. Pick the date you last watered this plant.</p>
-
-          <div className="actions">
-            <button type="submit">{editingId ? 'Save changes' : 'Save plant'}</button>
-            {editingId && <button type="button" className="secondary" onClick={cancelEdit}>Cancel</button>}
-          </div>
-        </form>
+      <section className="panel no-print" aria-labelledby="form-heading">
+        <h2 id="form-heading">{editingPlant ? 'Edit plant' : 'Add a plant'}</h2>
+        <PlantForm key={formKey} plant={editingPlant} onSubmit={handleSubmit} onCancel={resetForm} />
       </section>
 
       {storageWarning && <p className="notice" role="status">This browser could not save changes. Your list may not survive a refresh.</p>}
 
+      {thirsty.length > 0 && (
+        <section className="due" aria-labelledby="due-heading">
+          <h2 id="due-heading">Needs water <span className="count">{thirsty.length}</span></h2>
+          <ul>
+            {thirsty.map((plant) => (
+              <li key={plant.id}><strong>{plant.name}</strong> <span>{wateringStatus(plant, today).label}</span></li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="records" aria-labelledby="plants-heading">
         <div className="section-heading">
-          <div><p className="eyebrow">YOUR PLANTS</p><h2 id="plants-heading">Plants <span className="count">{plants.length}</span></h2></div>
+          <div>
+            <p className="eyebrow">YOUR PLANTS</p>
+            <h2 id="plants-heading">Plants <span className="count">{filtering ? `${visiblePlants.length} of ${plants.length}` : plants.length}</span></h2>
+          </div>
+          {plants.length > 0 && <button type="button" className="secondary no-print" onClick={() => window.print()}>Print care sheet</button>}
         </div>
+
+        {plants.length > 0 && (
+          <PlantControls query={query} recommendation={recommendation} sort={sort} filtering={filtering}
+            onQuery={setQuery} onRecommendation={setRecommendation} onSort={setSort} onClear={clearFilters} />
+        )}
+
         {plants.length === 0 ? (
           <div className="empty">
             <h3>No plants saved yet</h3>
             <p>Add your first plant to keep its care notes in one place.</p>
             <button type="button" onClick={focusForm}>Add your first plant</button>
           </div>
+        ) : visiblePlants.length === 0 ? (
+          <div className="empty">
+            <h3>No plants match</h3>
+            <p>Try a different search or clear the filters.</p>
+            <button type="button" onClick={clearFilters}>Clear filters</button>
+          </div>
         ) : (
           <ul className="record-list" aria-label="Your plants">
-            {plants.map((plant) => (
-              <li className="record" key={plant.id}>
-                <div className="record-copy"><h3>{plant.name}</h3>
-                  {plant.careNote && <p>{plant.careNote}</p>}
-                  {plant.recommendations?.length > 0 && (
-                    <ul className="chips" aria-label="Care recommendations">
-                      {plant.recommendations.map((item) => <li key={item}>{item}</li>)}
-                    </ul>
-                  )}
-                  {plant.lastWatered && <p className="watered">Last watered: {formatDate(plant.lastWatered)}</p>}</div>
-                <div className="record-actions">
-                  <button type="button" className="secondary" aria-label={`Edit ${plant.name}`} onClick={() => startEdit(plant)}>Edit</button>
-                  <button type="button" className="danger" aria-label={`Delete ${plant.name}`} onClick={() => deletePlant(plant.id)}>Delete</button>
-                </div>
-              </li>
+            {visiblePlants.map((plant) => (
+              <PlantCard key={plant.id} plant={plant} today={today} onEdit={startEdit} onDelete={deletePlant} />
             ))}
           </ul>
         )}
       </section>
+
+      <section className="backup no-print" aria-labelledby="backup-heading">
+        <h2 id="backup-heading">Backup</h2>
+        <p className="hint">Plants live only in this browser. Export a file to keep a copy, or import one to restore it.</p>
+        <div className="actions">
+          <button type="button" className="secondary" onClick={exportBackup} disabled={plants.length === 0}>Export plants</button>
+          <button type="button" className="secondary" onClick={() => importRef.current?.click()}>Import plants</button>
+          <input ref={importRef} type="file" accept="application/json,.json" hidden aria-label="Import backup file" onChange={importBackup} />
+        </div>
+        {backupMessage && <p className="hint" role="status">{backupMessage}</p>}
+      </section>
+
+      {undo && (
+        <div className="toast" role="status">
+          <span>Deleted {undo.plant.name}.</span>
+          <button type="button" onClick={undoDelete}>Undo</button>
+        </div>
+      )}
+
       <footer><p>Plants are saved in this browser only. Browser storage is not a secure or shared database.</p></footer>
     </main>
   )
