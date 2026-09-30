@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { readPlants, writePlants } from './storage.js'
+import PlantTypePicker from './PlantTypePicker.jsx'
 
-const emptyForm = { name: '', careNote: '', lastWatered: '' }
+const emptyForm = { name: '', careNote: '', lastWatered: '', plantTypes: [] }
 
 function todayString() {
   const now = new Date()
@@ -36,7 +37,7 @@ export default function App() {
     event.preventDefault()
     const name = form.name.trim()
     const careNote = form.careNote.trim()
-    const lastWatered = form.lastWatered
+    const { lastWatered, plantTypes } = form
     const nextErrors = {}
     if (!name) nextErrors.name = 'Enter a plant name before saving.'
     if (!careNote) nextErrors.careNote = 'Enter a care note before saving.'
@@ -47,12 +48,12 @@ export default function App() {
     }
     if (editingId) {
       setPlants((current) => current.map((plant) =>
-        plant.id === editingId ? { ...plant, name, careNote, lastWatered } : plant,
+        plant.id === editingId ? { ...plant, name, careNote, lastWatered, plantTypes } : plant,
       ))
       setEditingId(null)
     } else {
       setPlants((current) => [
-        { id: crypto.randomUUID(), name, careNote, lastWatered, createdAt: new Date().toISOString() },
+        { id: crypto.randomUUID(), name, careNote, lastWatered, plantTypes, createdAt: new Date().toISOString() },
         ...current,
       ])
     }
@@ -62,7 +63,7 @@ export default function App() {
 
   function startEdit(plant) {
     setEditingId(plant.id)
-    setForm({ name: plant.name, careNote: plant.careNote, lastWatered: plant.lastWatered ?? '' })
+    setForm({ name: plant.name, careNote: plant.careNote, lastWatered: plant.lastWatered ?? '', plantTypes: plant.plantTypes ?? [] })
     setErrors({})
     document.getElementById('plant-name')?.focus()
   }
@@ -108,6 +109,11 @@ export default function App() {
           {errors.careNote ? <p className="error" id="care-note-error" role="alert">{errors.careNote}</p> :
             <p className="hint" id="care-note-help">Required. For example: water weekly, bright indirect light. Do not enter sensitive personal information.</p>}
 
+          <label htmlFor="plant-types">Plant types</label>
+          <PlantTypePicker value={form.plantTypes}
+            onChange={(plantTypes) => setForm((current) => ({ ...current, plantTypes }))} />
+          <p className="hint">Optional. Choose one or more indoor plant types. You can still type your own name above.</p>
+
           <label htmlFor="plant-last-watered">Last watered</label>
           <input id="plant-last-watered" name="lastWatered" type="date" value={form.lastWatered}
             onChange={handleChange} max={todayString()} aria-describedby="last-watered-help" />
@@ -136,7 +142,13 @@ export default function App() {
           <ul className="record-list">
             {plants.map((plant) => (
               <li className="record" key={plant.id}>
-                <div className="record-copy"><h3>{plant.name}</h3>{plant.careNote && <p>{plant.careNote}</p>}
+                <div className="record-copy"><h3>{plant.name}</h3>
+                  {plant.plantTypes?.length > 0 && (
+                    <ul className="chips" aria-label="Plant types">
+                      {plant.plantTypes.map((type) => <li key={type}>{type}</li>)}
+                    </ul>
+                  )}
+                  {plant.careNote && <p>{plant.careNote}</p>}
                   {plant.lastWatered && <p className="watered">Last watered: {formatDate(plant.lastWatered)}</p>}</div>
                 <div className="record-actions">
                   <button type="button" className="secondary" aria-label={`Edit ${plant.name}`} onClick={() => startEdit(plant)}>Edit</button>

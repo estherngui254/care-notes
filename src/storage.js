@@ -8,6 +8,11 @@ export function readPlants() {
     if (!Array.isArray(parsed)) return []
     return parsed.filter((plant) => plant && typeof plant.id === 'string'
       && typeof plant.name === 'string' && typeof plant.careNote === 'string')
+      .map((plant) => ({
+        ...plant,
+        plantTypes: Array.isArray(plant.plantTypes)
+          ? plant.plantTypes.filter((type) => typeof type === 'string') : [],
+      }))
   } catch {
     return []
   }
