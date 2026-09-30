@@ -1,34 +1,43 @@
 # Plant Care Notes acceptance checks
 
-Run these manually in the browser (`npm run dev`) and record each result. Start with a clean state: clear this site's localStorage, or delete all plants.
+Most checks are covered by automated tests (`npm test`). The **Automated test** column names the test file that covers each one. Checks marked **manual** need a real browser. Run the manual ones with `npm run dev` and record the result. Start from a clean state: clear this site's localStorage, or delete all plants.
 
 ## Acceptance criteria
 
-| # | Check | Steps | Expected | Result |
-|---|-------|-------|----------|--------|
-| 1 | Save a plant | Enter a plant name and care note, then select **Save plant**. | The plant appears in the list with both name and care note visible. | |
-| 2 | Required fields | Try to save with the name blank, then with no recommendation and no other care, then with only spaces. | Nothing is saved. A message names the missing field and focus moves to it. | |
-| 3 | Edit a plant | Select **Edit** on a plant, change the name or care note, then select **Save changes**. | The updated details appear in the list. | |
-| 4 | Delete a plant | Delete a plant, then delete the last remaining one. | The plant disappears. Deleting the last one shows the empty state. | |
-| 5 | Persistence | Add a plant, refresh the browser. Edit it, refresh again. | The saved details are still visible after each refresh. | |
+| # | Check | Steps | Expected | Automated test | Result |
+|---|-------|-------|----------|----------------|--------|
+| 1 | Save a plant | Enter a plant name and care, then select **Save plant**. | The plant appears in the list with name and care visible. | App.test.jsx | |
+| 2 | Required fields | Try to save with the name blank, then with no recommendation and no other care, then with only spaces. | Nothing is saved. A message names the missing field and focus moves to it. | App.test.jsx | |
+| 3 | Edit a plant | Select **Edit**, change the name or care, then select **Save changes**. | The updated details appear in the list. | App.test.jsx | |
+| 4 | Delete a plant | Delete a plant, then delete the last remaining one. | The plant disappears. Deleting the last one shows the empty state. | App.features.test.jsx (undo) | |
+| 5 | Persistence | Add a plant, refresh the browser. Edit it, refresh again. | The saved details are still visible after each refresh. | App.test.jsx (remount) | **manual** |
 
 ## Other checks
 
-| # | Check | Steps | Expected | Result |
-|---|-------|-------|----------|--------|
-| 6 | Empty state | Open the app with no saved plants, then select **Add your first plant**. | The message "No plants saved yet. Add your first plant to keep its care notes in one place." shows, and focus moves to the plant name field. | |
-| 7 | Cancel edit | Select **Edit**, change a field, then select **Cancel**. | The form clears and the plant is unchanged. | |
-| 8 | Narrow width | Resize the window to phone width. | Controls stay visible and the Edit and Delete buttons wrap below the plant details. | |
-| 9 | Storage unavailable | Block site data for the page, then add a plant. | A warning says changes may not survive a refresh, and the app does not crash. | |
+| # | Check | Steps | Expected | Automated test | Result |
+|---|-------|-------|----------|----------------|--------|
+| 6 | Empty state | Open the app with no saved plants, then select **Add your first plant**. | "No plants saved yet" shows and focus moves to the plant name field. | App.test.jsx | |
+| 7 | Cancel edit | Select **Edit**, change a field, then select **Cancel**. | The form clears and the plant is unchanged. | App.test.jsx | |
+| 8 | Narrow width | Resize the window to phone width. | Controls stay visible and Edit and Delete wrap below the plant details. | none | **manual** |
+| 9 | Storage unavailable | Block site data for the page, then add a plant. | A warning says changes may not survive a refresh, and the app does not crash. | App.test.jsx | |
+| 10 | Last watered | Add a plant with a last watered date. Future dates can't be picked. | The date and "Watered N days ago" show. | App.features.test.jsx | |
+| 11 | Plant name list | Click **Plant name** and pick a listed plant, then type your own name. | Both save as the plant name. | none | **manual** |
+| 12 | Care recommendations | Under **Care note**, select two or more recommendations and save. Press Escape and click outside to close the list. | They show as tags, are pre-selected when editing, and survive a refresh. | App.test.jsx | |
+| 13 | Other care | Try recommendations only, other care only, then neither. | Either alone saves. With neither, nothing saves and a message appears. | App.test.jsx | |
 
-## Stretch check
+## Added features
 
-| # | Check | Steps | Expected | Result |
-|---|-------|-------|----------|--------|
-| 10 | Last watered | Add a plant with a last watered date, then edit the date. Also add one with no date. Refresh. | The date shows under the care note, updates after editing, and survives a refresh. A plant without a date shows no watered line. Future dates can't be picked. | |
-| 11 | Plant name list | Click the **Plant name** box and pick an indoor plant from the list. Then type a name that isn't in the list, and save each. | Both a listed plant and a typed name save as the plant name. Only one name is set per plant. | |
-| 12 | Care note recommendations (multiple) | Under **Care note**, open the dropdown, select two or more recommendations, and save. Edit the plant and change the selection. Press Escape and click outside to close the list. Refresh. | The selections show as tags in the list, are pre-selected when editing, and survive a refresh. The list closes on Escape and on an outside click. **Clear selection** empties it. | |
-| 13 | Other care | Leave the recommendations empty, type text in **Other care**, and save. Then try with both empty. | Typed care alone saves. Recommendations alone save. With both empty, nothing saves and a message asks for a care note. | |
+| # | Check | Steps | Expected | Automated test | Result |
+|---|-------|-------|----------|----------------|--------|
+| 14 | Watering schedule | Set a last watered date and "Water every N days". Try 0 and 2.5. | Overdue, due-today and upcoming labels are correct. **Needs water** lists due plants. Invalid intervals are rejected. | plantUtils.test.js, App.features.test.jsx | |
+| 15 | Search and filter | Search by name and by care text. Filter by a recommendation. Clear filters. | Only matching plants show, with "N of M". No matches shows a message and a clear button. | App.features.test.jsx | |
+| 16 | Sort | Change **Sort by** through each option. | The list reorders. Plants without a date or schedule sort last for the watering options. | plantUtils.test.js | |
+| 17 | Undo delete | Delete a plant, then select **Undo** within 8 seconds. | The plant returns to its place. | App.features.test.jsx | |
+| 18 | Export and import | Export, delete all plants, then import the file. Import it again. Import a text file. | Plants return. A second import reports duplicates. A bad file shows an error. | App.features.test.jsx (import) | **manual** (download) |
+| 19 | Photo | Add a JPEG or PNG photo, save, refresh. Try a text file. | The photo shows in the list and survives a refresh. A non-image is rejected. | App.features.test.jsx (rejection only) | **manual** (upload and compression) |
+| 20 | Dark mode | Select **Dark mode**, refresh, then **Light mode**. | The theme switches and is remembered. | App.features.test.jsx | **manual** (appearance) |
+| 21 | Print | Select **Print care sheet**. | The preview shows plants without forms, buttons or controls. | none | **manual** |
+| 22 | Install and offline | Open the deployed site, install it, then go offline and reload. | The app installs and still opens. Saved plants show. | none | **manual** |
 
 ## Main workflow run
 

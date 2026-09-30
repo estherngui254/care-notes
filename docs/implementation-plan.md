@@ -55,5 +55,18 @@
 ## Order and commits
 Do the slices in order, 0 to 6, with one commit per slice. The main dependency is that slice 1 (renamed fields) comes before everything else. Slices 2 to 5 can be reordered if you want. Push to the GitHub repo after each slice or after slice 6.
 
+## Scope changes after the original plan
+
+The slices above were built as planned. These additions came afterwards and go beyond the brief:
+
+- Plant name is a searchable list of indoor plants plus free text (there is no separate plant type field).
+- The care note is built from a multi-select list of care recommendations plus an "Other care" text box. Either one alone satisfies the "care note required" rule, so acceptance criterion 2 now means "no recommendation and no other care".
+- Watering schedule ("water every N days") with days since watered, next due date and a "Needs water" list. The brief listed reminders and care schedules as non-goals. The app only shows status and sends no notifications.
+- Photos, saved compressed in browser storage. The brief listed photos as a non-goal.
+- Search, filter, sort, undo delete, JSON export and import, dark mode, print view.
+- Installable offline app (PWA), automated tests (Vitest), and deployment to GitHub Pages.
+
+Still out of scope because they need a backend or a third-party service: accounts and sync, plant identification, and care advice from an external plant database.
+
 ## Not in scope (from the brief)
 Accounts or sync, reminders or care schedules, plant identification or external advice, photos, maps or social features, and any backend.
