@@ -120,8 +120,8 @@ export default function App() {
               <li className="record" key={plant.id}>
                 <div className="record-copy"><h3>{plant.name}</h3>{plant.careNote && <p>{plant.careNote}</p>}</div>
                 <div className="record-actions">
-                  <button type="button" className="secondary" onClick={() => startEdit(plant)}>Edit</button>
-                  <button type="button" className="danger" onClick={() => deletePlant(plant.id)}>Delete</button>
+                  <button type="button" className="secondary" aria-label={`Edit ${plant.name}`} onClick={() => startEdit(plant)}>Edit</button>
+                  <button type="button" className="danger" aria-label={`Delete ${plant.name}`} onClick={() => deletePlant(plant.id)}>Delete</button>
                 </div>
               </li>
             ))}
