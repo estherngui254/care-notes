@@ -7,7 +7,7 @@ export default function App() {
   const [plants, setPlants] = useState(readPlants)
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
-  const [error, setError] = useState('')
+  const [errors, setErrors] = useState({})
   const [storageWarning, setStorageWarning] = useState(false)
 
   useEffect(() => {
@@ -17,42 +17,47 @@ export default function App() {
   function handleChange(event) {
     const { name, value } = event.target
     setForm((current) => ({ ...current, [name]: value }))
-    if (name === 'name' && value.trim()) setError('')
+    if (value.trim()) setErrors((current) => ({ ...current, [name]: '' }))
   }
 
   function handleSubmit(event) {
     event.preventDefault()
     const name = form.name.trim()
-    if (!name) {
-      setError('Enter a plant name before saving.')
+    const careNote = form.careNote.trim()
+    const nextErrors = {}
+    if (!name) nextErrors.name = 'Enter a plant name before saving.'
+    if (!careNote) nextErrors.careNote = 'Enter a care note before saving.'
+    if (nextErrors.name || nextErrors.careNote) {
+      setErrors(nextErrors)
+      document.getElementById(nextErrors.name ? 'plant-name' : 'plant-care-note')?.focus()
       return
     }
     if (editingId) {
       setPlants((current) => current.map((plant) =>
-        plant.id === editingId ? { ...plant, name, careNote: form.careNote.trim() } : plant,
+        plant.id === editingId ? { ...plant, name, careNote } : plant,
       ))
       setEditingId(null)
     } else {
       setPlants((current) => [
-        { id: crypto.randomUUID(), name, careNote: form.careNote.trim(), createdAt: new Date().toISOString() },
+        { id: crypto.randomUUID(), name, careNote, createdAt: new Date().toISOString() },
         ...current,
       ])
     }
     setForm(emptyForm)
-    setError('')
+    setErrors({})
   }
 
   function startEdit(plant) {
     setEditingId(plant.id)
     setForm({ name: plant.name, careNote: plant.careNote })
-    setError('')
+    setErrors({})
     document.getElementById('plant-name')?.focus()
   }
 
   function cancelEdit() {
     setEditingId(null)
     setForm(emptyForm)
-    setError('')
+    setErrors({})
   }
 
   function deletePlant(id) {
@@ -73,14 +78,16 @@ export default function App() {
         <form onSubmit={handleSubmit} noValidate>
           <label htmlFor="plant-name">Plant name <span aria-hidden="true">*</span></label>
           <input id="plant-name" name="name" value={form.name} onChange={handleChange}
-            maxLength={80} aria-invalid={Boolean(error)} aria-describedby={error ? 'name-error' : 'name-help'} />
-          {error ? <p className="error" id="name-error" role="alert">{error}</p> :
+            maxLength={80} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? 'name-error' : 'name-help'} />
+          {errors.name ? <p className="error" id="name-error" role="alert">{errors.name}</p> :
             <p className="hint" id="name-help">Required. Keep it under 80 characters.</p>}
 
-          <label htmlFor="plant-care-note">Care note</label>
+          <label htmlFor="plant-care-note">Care note <span aria-hidden="true">*</span></label>
           <textarea id="plant-care-note" name="careNote" value={form.careNote} onChange={handleChange}
-            rows="3" maxLength={240} />
-          <p className="hint">For example: water weekly, bright indirect light. Do not enter sensitive personal information.</p>
+            rows="3" maxLength={240} aria-invalid={Boolean(errors.careNote)}
+            aria-describedby={errors.careNote ? 'care-note-error' : 'care-note-help'} />
+          {errors.careNote ? <p className="error" id="care-note-error" role="alert">{errors.careNote}</p> :
+            <p className="hint" id="care-note-help">Required. For example: water weekly, bright indirect light. Do not enter sensitive personal information.</p>}
 
           <div className="actions">
             <button type="submit">{editingId ? 'Save changes' : 'Save plant'}</button>
