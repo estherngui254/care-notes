@@ -115,8 +115,8 @@ export default function App() {
           {errors.name ? <p className="error" id="name-error" role="alert">{errors.name}</p> :
             <p className="hint" id="name-help">Required. Pick an indoor plant from the list or type your own name. Keep it under 80 characters.</p>}
 
-          <label htmlFor="care-recommendations">Care note <span aria-hidden="true">*</span></label>
-          <MultiSelect id="care-recommendations" options={CARE_RECOMMENDATIONS} value={form.recommendations}
+          <label id="care-recommendations-label" htmlFor="care-recommendations">Care note <span aria-hidden="true">*</span></label>
+          <MultiSelect id="care-recommendations" labelId="care-recommendations-label" options={CARE_RECOMMENDATIONS} value={form.recommendations}
             placeholder="Choose care recommendations" groupLabel="Care recommendations"
             invalid={Boolean(errors.careNote)} describedBy={errors.careNote ? 'care-note-error' : 'care-note-help'}
             onChange={(recommendations) => {
@@ -156,7 +156,7 @@ export default function App() {
             <button type="button" onClick={focusForm}>Add your first plant</button>
           </div>
         ) : (
-          <ul className="record-list">
+          <ul className="record-list" aria-label="Your plants">
             {plants.map((plant) => (
               <li className="record" key={plant.id}>
                 <div className="record-copy"><h3>{plant.name}</h3>
