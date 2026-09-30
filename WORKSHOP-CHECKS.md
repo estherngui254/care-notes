@@ -21,6 +21,12 @@ Run these manually in the browser (`npm run dev`) and record each result. Start 
 | 8 | Narrow width | Resize the window to phone width. | Controls stay visible and the Edit and Delete buttons wrap below the plant details. | |
 | 9 | Storage unavailable | Block site data for the page, then add a plant. | A warning says changes may not survive a refresh, and the app does not crash. | |
 
+## Stretch check
+
+| # | Check | Steps | Expected | Result |
+|---|-------|-------|----------|--------|
+| 10 | Last watered | Add a plant with a last watered date, then edit the date. Also add one with no date. Refresh. | The date shows under the care note, updates after editing, and survives a refresh. A plant without a date shows no watered line. Future dates can't be picked. | |
+
 ## Main workflow run
 
 Add a plant, see it in the list, edit it, refresh to confirm it was saved, then delete it. All steps should work using only the visible controls.

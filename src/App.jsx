@@ -1,7 +1,19 @@
 import { useEffect, useState } from 'react'
 import { readPlants, writePlants } from './storage.js'
 
-const emptyForm = { name: '', careNote: '' }
+const emptyForm = { name: '', careNote: '', lastWatered: '' }
+
+function todayString() {
+  const now = new Date()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear()}-${month}-${day}`
+}
+
+function formatDate(value) {
+  const [year, month, day] = value.split('-').map(Number)
+  return new Date(year, month - 1, day).toLocaleDateString(undefined, { dateStyle: 'medium' })
+}
 
 export default function App() {
   const [plants, setPlants] = useState(readPlants)
@@ -24,6 +36,7 @@ export default function App() {
     event.preventDefault()
     const name = form.name.trim()
     const careNote = form.careNote.trim()
+    const lastWatered = form.lastWatered
     const nextErrors = {}
     if (!name) nextErrors.name = 'Enter a plant name before saving.'
     if (!careNote) nextErrors.careNote = 'Enter a care note before saving.'
@@ -34,12 +47,12 @@ export default function App() {
     }
     if (editingId) {
       setPlants((current) => current.map((plant) =>
-        plant.id === editingId ? { ...plant, name, careNote } : plant,
+        plant.id === editingId ? { ...plant, name, careNote, lastWatered } : plant,
       ))
       setEditingId(null)
     } else {
       setPlants((current) => [
-        { id: crypto.randomUUID(), name, careNote, createdAt: new Date().toISOString() },
+        { id: crypto.randomUUID(), name, careNote, lastWatered, createdAt: new Date().toISOString() },
         ...current,
       ])
     }
@@ -49,7 +62,7 @@ export default function App() {
 
   function startEdit(plant) {
     setEditingId(plant.id)
-    setForm({ name: plant.name, careNote: plant.careNote })
+    setForm({ name: plant.name, careNote: plant.careNote, lastWatered: plant.lastWatered ?? '' })
     setErrors({})
     document.getElementById('plant-name')?.focus()
   }
@@ -95,6 +108,11 @@ export default function App() {
           {errors.careNote ? <p className="error" id="care-note-error" role="alert">{errors.careNote}</p> :
             <p className="hint" id="care-note-help">Required. For example: water weekly, bright indirect light. Do not enter sensitive personal information.</p>}
 
+          <label htmlFor="plant-last-watered">Last watered</label>
+          <input id="plant-last-watered" name="lastWatered" type="date" value={form.lastWatered}
+            onChange={handleChange} max={todayString()} aria-describedby="last-watered-help" />
+          <p className="hint" id="last-watered-help">Optional. Pick the date you last watered this plant.</p>
+
           <div className="actions">
             <button type="submit">{editingId ? 'Save changes' : 'Save plant'}</button>
             {editingId && <button type="button" className="secondary" onClick={cancelEdit}>Cancel</button>}
@@ -118,7 +136,8 @@ export default function App() {
           <ul className="record-list">
             {plants.map((plant) => (
               <li className="record" key={plant.id}>
-                <div className="record-copy"><h3>{plant.name}</h3>{plant.careNote && <p>{plant.careNote}</p>}</div>
+                <div className="record-copy"><h3>{plant.name}</h3>{plant.careNote && <p>{plant.careNote}</p>}
+                  {plant.lastWatered && <p className="watered">Last watered: {formatDate(plant.lastWatered)}</p>}</div>
                 <div className="record-actions">
                   <button type="button" className="secondary" aria-label={`Edit ${plant.name}`} onClick={() => startEdit(plant)}>Edit</button>
                   <button type="button" className="danger" aria-label={`Delete ${plant.name}`} onClick={() => deletePlant(plant.id)}>Delete</button>

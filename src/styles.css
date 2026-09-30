@@ -40,6 +40,7 @@ button.danger { background: #8c3037; }
 .empty h3 { margin-bottom: 6px; }
 .empty p { margin-bottom: 0; line-height: 1.5; }
 .empty button { margin-top: 16px; }
+.record-copy p.watered { font-size: .9rem; margin-top: 6px; }
 .record-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
 .record { display: flex; align-items: center; justify-content: space-between; gap: 18px; background: white; border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
 .record-copy { min-width: 0; }
