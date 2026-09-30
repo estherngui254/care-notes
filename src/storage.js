@@ -5,7 +5,9 @@ export function readPlants() {
     const saved = window.localStorage.getItem(STORAGE_KEY)
     if (!saved) return []
     const parsed = JSON.parse(saved)
-    return Array.isArray(parsed) ? parsed : []
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((plant) => plant && typeof plant.id === 'string'
+      && typeof plant.name === 'string' && typeof plant.careNote === 'string')
   } catch {
     return []
   }
