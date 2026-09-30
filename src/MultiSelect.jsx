@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { PLANT_TYPES } from './plantTypes.js'
 
-export default function PlantTypePicker({ value, onChange }) {
+export default function MultiSelect({ id, options, value, onChange, placeholder, groupLabel }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
 
@@ -24,27 +23,28 @@ export default function PlantTypePicker({ value, onChange }) {
     }
   }, [open])
 
-  function toggle(type) {
-    onChange(value.includes(type) ? value.filter((item) => item !== type) : [...value, type])
+  function toggle(option) {
+    onChange(value.includes(option) ? value.filter((item) => item !== option) : [...value, option])
   }
 
-  const label = value.length === 0 ? 'Choose plant types' : `${value.length} selected`
+  const label = value.length === 0 ? placeholder : `${value.length} selected`
+  const panelId = `${id}-panel`
 
   return (
     <div className="picker" ref={rootRef}>
-      <button type="button" className="secondary picker-toggle" id="plant-types"
-        aria-haspopup="true" aria-expanded={open} aria-controls="plant-types-panel"
+      <button type="button" className="secondary picker-toggle" id={id}
+        aria-haspopup="true" aria-expanded={open} aria-controls={panelId}
         onClick={() => setOpen((current) => !current)}>
         <span>{label}</span><span aria-hidden="true">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
-        <div className="picker-panel" id="plant-types-panel" role="group" aria-label="Indoor plant types">
+        <div className="picker-panel" id={panelId} role="group" aria-label={groupLabel}>
           <ul>
-            {PLANT_TYPES.map((type) => (
-              <li key={type}>
+            {options.map((option) => (
+              <li key={option}>
                 <label className="picker-option">
-                  <input type="checkbox" checked={value.includes(type)} onChange={() => toggle(type)} />
-                  {type}
+                  <input type="checkbox" checked={value.includes(option)} onChange={() => toggle(option)} />
+                  {option}
                 </label>
               </li>
             ))}

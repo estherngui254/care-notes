@@ -26,7 +26,8 @@ Run these manually in the browser (`npm run dev`) and record each result. Start 
 | # | Check | Steps | Expected | Result |
 |---|-------|-------|----------|--------|
 | 10 | Last watered | Add a plant with a last watered date, then edit the date. Also add one with no date. Refresh. | The date shows under the care note, updates after editing, and survives a refresh. A plant without a date shows no watered line. Future dates can't be picked. | |
-| 11 | Plant types | Open **Plant types**, select two or more types, and save. Edit the plant and change the selection. Press Escape and click outside to close the list. Refresh. | The selected types show as tags under the plant name, are pre-selected when editing, and survive a refresh. The list closes on Escape and on an outside click. **Clear selection** empties it. | |
+| 11 | Plant type (single) | Open **Plant type** and choose one type, then save. Edit the plant and choose a different type. Refresh. | Only one type can be chosen at a time. It shows under the plant name, is pre-selected when editing, and survives a refresh. | |
+| 12 | Care recommendations (multiple) | Open **Care recommendations**, select two or more, and save. Edit the plant and change the selection. Press Escape and click outside to close the list. Refresh. | The selections show as tags under the care note, are pre-selected when editing, and survive a refresh. The list closes on Escape and on an outside click. **Clear selection** empties it. | |
 
 ## Main workflow run
 

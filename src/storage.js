@@ -8,10 +8,13 @@ export function readPlants() {
     if (!Array.isArray(parsed)) return []
     return parsed.filter((plant) => plant && typeof plant.id === 'string'
       && typeof plant.name === 'string' && typeof plant.careNote === 'string')
-      .map((plant) => ({
+      .map(({ plantTypes, ...plant }) => ({
         ...plant,
-        plantTypes: Array.isArray(plant.plantTypes)
-          ? plant.plantTypes.filter((type) => typeof type === 'string') : [],
+        // Plants saved with the earlier multi-select keep their first type.
+        plantType: typeof plant.plantType === 'string' ? plant.plantType
+          : (Array.isArray(plantTypes) && typeof plantTypes[0] === 'string' ? plantTypes[0] : ''),
+        recommendations: Array.isArray(plant.recommendations)
+          ? plant.recommendations.filter((item) => typeof item === 'string') : [],
       }))
   } catch {
     return []
