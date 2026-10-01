@@ -3,7 +3,28 @@ import { PROBLEMS } from './pestsAndDiseases.js'
 
 // To trade accuracy for lower cost, switch to 'claude-sonnet-5-5'.
 export const MODEL = 'claude-opus-5-5'
+export const GEMINI_MODEL = 'gemini-3.8-flash'
 export const MAX_PHOTOS = 3
+
+export const DEFAULT_PROVIDER = 'gemini'
+export const PROVIDERS = {
+  gemini: {
+    id: 'gemini',
+    label: 'Google Gemini (free tier)',
+    short: 'Google Gemini',
+    company: 'Google',
+    keyUrl: 'https://aistudio.google.com/apikey',
+    keyHint: 'AIza…',
+  },
+  claude: {
+    id: 'claude',
+    label: 'Claude (paid)',
+    short: 'Claude',
+    company: 'Anthropic',
+    keyUrl: 'https://console.anthropic.com/',
+    keyHint: 'sk-ant-…',
+  },
+}
 
 const FALLBACK_BETA = 'server-side-fallback-2026-07-01'
 const CONFIDENCE = ['high', 'medium', 'low']
@@ -182,9 +203,52 @@ export function parseResult(message) {
     throw new ScanError('The answer was cut short. Please try again.', 'truncated')
   }
   const block = list(message.content).find((item) => item.type === 'text')
+  return parseJsonAnswer(block?.text ?? '')
+}
+
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models'
+
+// The request body for Gemini's generateContent. `images` are JPEG data URLs.
+export function buildGeminiRequest(images) {
+  const count = images.length
+  return {
+    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          ...images.map((image) => ({ inlineData: { mimeType: 'image/jpeg', data: stripDataUrl(image) } })),
+          {
+            text: `${count === 1 ? 'This photo shows' : `These ${count} photos show`} the same plant. Identify it, describe its care needs, and check its health.`,
+          },
+        ],
+      },
+    ],
+    generationConfig: { responseMimeType: 'application/json', responseJsonSchema: RESULT_SCHEMA },
+  }
+}
+
+// Turns a Gemini response into a normalized result, or throws a ScanError.
+export function parseGeminiResponse(data) {
+  if (data?.promptFeedback?.blockReason) {
+    throw new ScanError('The request was blocked. Try a clearer photo of just the plant.', 'refused')
+  }
+  const candidate = list(data?.candidates)[0]
+  if (!candidate) throw new ScanError('No answer came back. Please try again.', 'invalid')
+  const reason = candidate.finishReason
+  if (reason === 'MAX_TOKENS') throw new ScanError('The answer was cut short. Please try again.', 'truncated')
+  if (reason && reason !== 'STOP') {
+    throw new ScanError('The request was blocked. Try a clearer photo of just the plant.', 'refused')
+  }
+  const answer = list(candidate.content?.parts).filter((part) => typeof part.text === 'string' && !part.thought)
+    .map((part) => part.text).join('')
+  return parseJsonAnswer(answer)
+}
+
+function parseJsonAnswer(answer) {
   let raw
   try {
-    raw = JSON.parse(block?.text ?? '')
+    raw = JSON.parse(answer)
   } catch {
     throw new ScanError('The answer could not be read. Please try again.', 'invalid')
   }
@@ -197,9 +261,13 @@ export function parseResult(message) {
 export function friendlyError(error) {
   if (error instanceof ScanError) return error.message
   const status = error?.status
+  if (error?.reason === 'API_KEY_INVALID' || (status === 400 && /api key not valid/i.test(error?.message ?? ''))) {
+    return 'The API key was not accepted. Check it and try again.'
+  }
   if (status === 401) return 'The API key was not accepted. Check it and try again.'
   if (status === 403) return 'This API key does not have permission to use this model.'
-  if (status === 429) return 'Too many requests right now. Wait a minute and try again.'
+  if (status === 404) return 'The AI model is not available. The app may need updating to a newer model.'
+  if (status === 429) return 'The usage limit was reached. Wait a minute and try again. A free key also has a daily limit.'
   if (status === 402 || (status === 400 && /credit|billing/i.test(error?.message ?? ''))) {
     return 'The account behind this API key has no credit left.'
   }
@@ -217,8 +285,31 @@ async function createClient(apiKey) {
   return new Anthropic({ apiKey, dangerouslyAllowBrowser: true, maxRetries: 1, timeout: 120_000 })
 }
 
-export async function identifyPlant({ apiKey, images, client }) {
-  const sdk = client ?? await createClient(apiKey)
-  const message = await sdk.beta.messages.create(buildRequest(images))
-  return parseResult(message)
+async function callGemini({ apiKey, images, fetchFn }) {
+  const response = await fetchFn(`${GEMINI_URL}/${GEMINI_MODEL}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify(buildGeminiRequest(images)),
+  })
+  let data = null
+  try {
+    data = await response.json()
+  } catch {
+    // Handled below from the status code.
+  }
+  if (!response.ok) {
+    const detail = data?.error ?? {}
+    const reason = list(detail.details).find((item) => item?.reason)?.reason
+    throw Object.assign(new Error(detail.message ?? `Request failed (${response.status})`), { status: response.status, reason })
+  }
+  return parseGeminiResponse(data)
+}
+
+// `provider` is 'gemini' (free tier) or 'claude' (paid). `client` and `fetchFn` are for tests.
+export async function identifyPlant({ provider = DEFAULT_PROVIDER, apiKey, images, client, fetchFn }) {
+  if (provider === 'claude') {
+    const sdk = client ?? await createClient(apiKey)
+    return parseResult(await sdk.beta.messages.create(buildRequest(images)))
+  }
+  return callGemini({ apiKey, images, fetchFn: fetchFn ?? ((...args) => fetch(...args)) })
 }

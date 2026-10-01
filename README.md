@@ -6,7 +6,7 @@ A small React + Vite app for keeping care notes for your houseplants. Everything
 
 ## Features
 
-- Identify a plant from a photo: take or choose up to 3 photos and the app tells you the plant type, its care requirements (light, water, humidity, temperature, soil, fertiliser, pet safety) and checks it for pests, diseases and nutrient deficiencies. You can save the result as a plant, with its problems recorded and its care requirements on its card. This uses the Claude AI service and needs your own API key (see below).
+- Identify a plant from a photo: take or choose up to 3 photos and the app tells you the plant type, its care requirements (light, water, humidity, temperature, soil, fertiliser, pet safety) and checks it for pests, diseases and nutrient deficiencies. You can save the result as a plant, with its problems recorded and its care requirements on its card. This uses an AI service and needs your own API key. A free Google Gemini key works (see below).
 - Add, edit and delete plants. Pick a plant name from a list of common indoor plants or type your own.
 - Care note built from a multi-select list of care recommendations, plus free text for other care.
 - Optional last watered date and a "water every N days" schedule. The app shows days since watering, when the next watering is due, and lists plants that need water.
@@ -21,16 +21,23 @@ A small React + Vite app for keeping care notes for your houseplants. Everything
 
 ## Identify from a photo: setup, cost and privacy
 
-Photo identification is the only feature that needs the internet and an account. Everything else works offline with no account.
+Photo identification is the only feature that needs the internet and an API key. Everything else works offline with no account. You can choose between two services.
 
-1. Create an API key in the [Anthropic Console](https://console.anthropic.com/) and set a low spend limit on it.
-2. Paste it into **Identify a plant from a photo** the first time you use it. Use **Remove key** to forget it.
+**Google Gemini (free tier), the default**
+1. Go to [Google AI Studio](https://aistudio.google.com/apikey), sign in with a Google account and choose **Create API key**. No payment details are needed.
+2. Paste the key into **Identify a plant from a photo** the first time you use it.
 3. Take or choose photos, then select **Identify and check health**.
 
-- **Where the key lives:** only in this browser's localStorage. The app has no server, so the key is sent straight from your browser to Anthropic. It is never included in an export. Anyone who can use this browser could use the key, so avoid shared computers and keep a low spend limit.
+The free tier has per-minute and daily limits, and is not available in every country. **On the free tier, Google may use your photos and the answers to improve its products**, so do not use photos you want to keep private. A paid Google key does not do this.
+
+**Claude (paid)**
+Create a key in the [Anthropic Console](https://console.anthropic.com/) and set a low spend limit on it. Each scan costs a few cents. To make it cheaper, change `MODEL` in `src/identify.js` to `claude-sonnet-5-5`. This may identify plants a little less reliably.
+
+**For both**
+- **Where the key lives:** only in this browser's localStorage, one per service. The app has no server, so photos and the key go straight from your browser to the service. The key is never included in an export. Anyone who can use this browser could use the key, so avoid shared computers. Use **Remove key** to forget it.
 - **What is sent:** your photos, only when you select Identify. They are resized to 1024 pixels first.
-- **Cost:** each scan is billed to your key, roughly a few cents with the default model. To make it cheaper, change `MODEL` in `src/identify.js` to `claude-sonnet-5-5`. This may identify plants a little less reliably.
 - **Accuracy:** results are an AI estimate from photos and can be wrong. The app shows its confidence and suggests photos that would help.
+- **Model names:** the Gemini model is set by `GEMINI_MODEL` in `src/identify.js`. If Google retires it, the app says the model is not available, and you can change that line.
 
 ## Requirements
 

@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react'
-import { MAX_PHOTOS, friendlyError, identifyPlant } from './identify.js'
+import { DEFAULT_PROVIDER, MAX_PHOTOS, PROVIDERS, friendlyError, identifyPlant } from './identify.js'
 import { KIND_LABELS, findProblem } from './pestsAndDiseases.js'
 import { compressImage, resizeDataUrl } from './photo.js'
 import { todayString } from './plantUtils.js'
 import { plantFromScan } from './scanToPlant.js'
-import { readApiKey, writeApiKey } from './storage.js'
+import { readApiKey, readProvider, writeApiKey, writeProvider } from './storage.js'
 
 const ANALYSIS_SIZE = 1024
 const OVERALL_LABELS = {
@@ -23,9 +23,11 @@ const CARE_ROWS = [
   ['petSafety', 'Pets'],
 ]
 
-function KeySetup({ onSave }) {
+function KeySetup({ initialProvider, onSave }) {
+  const [provider, setProvider] = useState(initialProvider)
   const [value, setValue] = useState('')
   const [error, setError] = useState('')
+  const info = PROVIDERS[provider]
 
   function handleSubmit(event) {
     event.preventDefault()
@@ -34,26 +36,57 @@ function KeySetup({ onSave }) {
       setError('Paste your API key first.')
       return
     }
-    if (!writeApiKey(key)) {
+    if (!writeApiKey(provider, key)) {
       setError('This browser could not store the key. It will be forgotten when you leave.')
     }
-    onSave(key)
+    writeProvider(provider)
+    onSave(provider, key)
   }
 
   return (
     <form className="key-form" onSubmit={handleSubmit} noValidate>
-      <p>
-        Identifying a plant from a photo uses the Claude AI service, so it needs your own API key.
-        Create one in the Anthropic Console and set a low spend limit on it.
-      </p>
+      <p>Identifying a plant from a photo uses an AI service, so it needs your own API key. Choose a service:</p>
+      <fieldset className="category">
+        <legend className="visually-hidden">AI service</legend>
+        {Object.values(PROVIDERS).map((option) => (
+          <label key={option.id} className="radio">
+            <input type="radio" name="scan-provider" value={option.id} checked={provider === option.id}
+              onChange={() => { setProvider(option.id); setError('') }} />
+            {option.label}
+          </label>
+        ))}
+      </fieldset>
+
+      {provider === 'gemini' ? (
+        <>
+          <p>
+            Get a free key at <a href={info.keyUrl} target="_blank" rel="noreferrer">Google AI Studio</a> (sign in with a Google account,
+            then choose Create API key). No payment details are needed.
+          </p>
+          <ul className="hint-list">
+            <li>On the free tier, Google may use your photos and the answers to improve its products. Do not use photos you want to keep private.</li>
+            <li>There are daily and per-minute limits, and the free tier is not available in every country.</li>
+          </ul>
+        </>
+      ) : (
+        <>
+          <p>
+            Create a key in the <a href={info.keyUrl} target="_blank" rel="noreferrer">Anthropic Console</a>. Claude is paid, about a few
+            cents a scan, so set a low spend limit on the key.
+          </p>
+          <ul className="hint-list">
+            <li>Photos are sent to Anthropic for analysis.</li>
+          </ul>
+        </>
+      )}
       <ul className="hint-list">
         <li>The key is saved only in this browser, and is never included in exports.</li>
-        <li>Photos are sent to Anthropic for analysis only when you select Identify. Each scan costs a few cents.</li>
+        <li>Photos are sent only when you select Identify.</li>
         <li>Anyone who can use this browser can use the key, so avoid shared computers.</li>
       </ul>
-      <label htmlFor="scan-api-key">Anthropic API key</label>
+      <label htmlFor="scan-api-key">{info.short} API key</label>
       <input id="scan-api-key" type="password" autoComplete="off" spellCheck="false" value={value}
-        placeholder="sk-ant-…" onChange={(event) => { setValue(event.target.value); setError('') }}
+        placeholder={info.keyHint} onChange={(event) => { setValue(event.target.value); setError('') }}
         aria-invalid={Boolean(error)} aria-describedby={error ? 'scan-key-error' : undefined} />
       {error && <p className="error" id="scan-key-error" role="alert">{error}</p>}
       <div className="actions">
@@ -140,7 +173,8 @@ function Result({ result }) {
 }
 
 export default function PlantScanner({ onSavePlant, identify = identifyPlant }) {
-  const [apiKey, setApiKey] = useState(readApiKey)
+  const [provider, setProvider] = useState(readProvider)
+  const [apiKey, setApiKey] = useState(() => readApiKey(readProvider()))
   const [photos, setPhotos] = useState([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -186,7 +220,7 @@ export default function PlantScanner({ onSavePlant, identify = identifyPlant }) 
     setSavedName('')
     setBusy(true)
     try {
-      setResult(await identify({ apiKey, images: photos }))
+      setResult(await identify({ provider, apiKey, images: photos }))
     } catch (problem) {
       setError(friendlyError(problem))
     } finally {
@@ -219,9 +253,14 @@ export default function PlantScanner({ onSavePlant, identify = identifyPlant }) 
   }
 
   function removeKey() {
-    writeApiKey('')
+    writeApiKey(provider, '')
     setApiKey('')
     startOver()
+  }
+
+  function saveKey(chosen, key) {
+    setProvider(chosen)
+    setApiKey(key)
   }
 
   return (
@@ -233,7 +272,7 @@ export default function PlantScanner({ onSavePlant, identify = identifyPlant }) 
       </p>
 
       {!apiKey ? (
-        <KeySetup onSave={setApiKey} />
+        <KeySetup initialProvider={provider ?? DEFAULT_PROVIDER} onSave={saveKey} />
       ) : (
         <>
           <div className="actions scan-actions">
@@ -265,7 +304,10 @@ export default function PlantScanner({ onSavePlant, identify = identifyPlant }) 
             </button>
             {photos.length > 0 && <button type="button" className="secondary" disabled={busy} onClick={startOver}>Clear</button>}
           </div>
-          <p className="hint">Your photos are sent to Anthropic for analysis when you select Identify.</p>
+          <p className="hint">
+            Your photos are sent to {PROVIDERS[provider].company} ({PROVIDERS[provider].short}) for analysis when you select Identify.
+            {provider === 'gemini' && ' On the free tier Google may use them to improve its products.'}
+          </p>
         </>
       )}
 
@@ -288,7 +330,8 @@ export default function PlantScanner({ onSavePlant, identify = identifyPlant }) 
 
       {apiKey && (
         <p className="hint key-note">
-          API key saved on this device. <button type="button" className="link" onClick={removeKey}>Remove key</button>
+          Using {PROVIDERS[provider].short}. API key saved on this device.{' '}
+          <button type="button" className="link" onClick={removeKey}>Remove key</button>
         </p>
       )}
     </section>

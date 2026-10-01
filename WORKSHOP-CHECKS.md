@@ -52,11 +52,11 @@ Most checks are covered by automated tests (`npm test`). The **Automated test** 
 
 ## Identify from a photo
 
-The tests use a fake service, so checks 29 to 31 need a real API key and a few cents of credit. Use a key with a low spend limit.
+The tests use a fake service, so checks 29 to 31 need a real API key. A free Google Gemini key from https://aistudio.google.com/apikey is enough. Remember that on the free tier Google may use the photos you send.
 
 | # | Check | Steps | Expected | Automated test | Result |
 |---|-------|-------|----------|----------------|--------|
-| 29 | Key setup | Open **Identify a plant from a photo**. Try saving an empty key, then paste a real key. Select **Remove key**. | An empty key is refused. A saved key shows the photo buttons. **Remove key** brings back the key form. The key is not in an exported backup. | PlantScanner.test.jsx | |
+| 29 | Key setup | Open **Identify a plant from a photo**. Try saving an empty key, then paste a real Gemini key. Select **Remove key**, then try the Claude option. | Gemini is offered first, with the note about Google using free-tier photos. An empty key is refused. A saved key shows the photo buttons. **Remove key** brings back the key form. The key is not in an exported backup. | PlantScanner.test.jsx | **manual** (real key) |
 | 30 | Identify a plant | Choose a clear photo of a houseplant (a second close-up of a leaf is a good test) and select **Identify and check health**. | After a short wait it shows the plant name, scientific name and confidence, care requirements, and a health check. A photo of something that is not a plant says it could not be identified. | PlantScanner.test.jsx (fake service) | **manual** (real service) |
 | 31 | Find a problem | Photograph a plant with a visible problem such as mealybugs, spotted leaves or yellow leaves. | The health check lists the problem with the signs it can see and steps to try. Compare it with the guide. | none | **manual** |
 | 32 | Save the result | Select **Save as a plant**. | The plant appears in the list with its photo, a **Care requirements** section and any problems under **Plant health**. | PlantScanner.test.jsx | |

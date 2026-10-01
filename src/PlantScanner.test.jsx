@@ -48,33 +48,61 @@ beforeEach(() => {
 })
 
 describe('API key', () => {
-  it('asks for a key first, stores it, and lets it be removed', async () => {
+  it('offers the free Gemini service first, stores the key, and lets it be removed', async () => {
     const { user } = setup()
     expect(screen.getByText(/needs your own api key/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/google gemini \(free tier\)/i)).toBeChecked()
+    expect(screen.getByRole('link', { name: /google ai studio/i })).toHaveAttribute('href', 'https://aistudio.google.com/apikey')
+    expect(screen.getByText(/google may use your photos/i)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /identify/i })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /save key/i }))
     expect(screen.getByText(/paste your api key first/i)).toBeInTheDocument()
 
-    await user.type(screen.getByLabelText(/anthropic api key/i), 'sk-ant-test')
+    await user.type(screen.getByLabelText(/gemini api key/i), 'AIza-test')
     await user.click(screen.getByRole('button', { name: /save key/i }))
-    expect(window.localStorage.getItem('plant-care-notes-api-key')).toBe('sk-ant-test')
+    expect(window.localStorage.getItem('plant-care-notes-api-key-gemini')).toBe('AIza-test')
+    expect(window.localStorage.getItem('plant-care-notes-provider')).toBe('gemini')
     expect(screen.getByRole('button', { name: /take photo/i })).toBeInTheDocument()
+    expect(screen.getByText(/sent to google/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /remove key/i }))
-    expect(window.localStorage.getItem('plant-care-notes-api-key')).toBeNull()
-    expect(screen.getByLabelText(/anthropic api key/i)).toBeInTheDocument()
+    expect(window.localStorage.getItem('plant-care-notes-api-key-gemini')).toBeNull()
+    expect(screen.getByLabelText(/gemini api key/i)).toBeInTheDocument()
+  })
+
+  it('lets you choose paid Claude instead and uses it for scans', async () => {
+    const { user, identify } = setup()
+    await user.click(screen.getByLabelText(/claude \(paid\)/i))
+    expect(screen.getByRole('link', { name: /anthropic console/i })).toBeInTheDocument()
+    expect(screen.queryByText(/google may use your photos/i)).not.toBeInTheDocument()
+    await user.type(screen.getByLabelText(/claude api key/i), 'sk-ant-test')
+    await user.click(screen.getByRole('button', { name: /save key/i }))
+    expect(window.localStorage.getItem('plant-care-notes-api-key-claude')).toBe('sk-ant-test')
+    expect(window.localStorage.getItem('plant-care-notes-provider')).toBe('claude')
+    expect(screen.getByText(/sent to anthropic/i)).toBeInTheDocument()
+
+    await user.upload(screen.getByLabelText('Choose photos'), photoFile())
+    await user.click(screen.getByRole('button', { name: /identify and check health/i }))
+    expect(identify).toHaveBeenCalledWith({ provider: 'claude', apiKey: 'sk-ant-test', images: ['data:image/jpeg;base64,AAAA'] })
+  })
+
+  it('keeps using a Claude key saved by an earlier version', () => {
+    window.localStorage.setItem('plant-care-notes-api-key', 'sk-ant-old')
+    setup()
+    expect(screen.getByText(/using claude/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /take photo/i })).toBeInTheDocument()
   })
 
   it('does not put the key in a backup export', async () => {
-    window.localStorage.setItem('plant-care-notes-api-key', 'sk-ant-secret')
+    window.localStorage.setItem('plant-care-notes-api-key-gemini', 'AIza-secret')
     const { buildBackup } = await import('./storage.js')
-    expect(buildBackup([])).not.toContain('sk-ant-secret')
+    expect(buildBackup([])).not.toContain('AIza-secret')
   })
 })
 
 describe('scanning', () => {
-  beforeEach(() => window.localStorage.setItem('plant-care-notes-api-key', 'sk-ant-test'))
+  beforeEach(() => window.localStorage.setItem('plant-care-notes-api-key-gemini', 'AIza-test'))
 
   it('needs a photo before it can identify', () => {
     setup()
@@ -87,7 +115,7 @@ describe('scanning', () => {
     expect(await screen.findByAltText('Photo 1 of the plant')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /identify and check health/i }))
-    expect(identify).toHaveBeenCalledWith({ apiKey: 'sk-ant-test', images: ['data:image/jpeg;base64,AAAA'] })
+    expect(identify).toHaveBeenCalledWith({ provider: 'gemini', apiKey: 'AIza-test', images: ['data:image/jpeg;base64,AAAA'] })
 
     const region = await screen.findByRole('region', { name: /scan result/i })
     expect(within(region).getByText('Peace Lily')).toBeInTheDocument()
@@ -169,7 +197,7 @@ describe('scanning', () => {
 
 describe('in the app', () => {
   it('adds the scanned plant to the list with its care requirements and problems', async () => {
-    window.localStorage.setItem('plant-care-notes-api-key', 'sk-ant-test')
+    window.localStorage.setItem('plant-care-notes-api-key-gemini', 'AIza-test')
     identifyPlant.mockResolvedValue(RESULT)
     const user = userEvent.setup({ applyAccept: false })
     render(<App />)

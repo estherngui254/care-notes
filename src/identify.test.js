@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
-  MODEL, RESULT_SCHEMA, ScanError, buildRequest, friendlyError, identifyPlant, normalizeResult, parseResult,
+  DEFAULT_PROVIDER, GEMINI_MODEL, MODEL, RESULT_SCHEMA, ScanError, buildGeminiRequest, buildRequest, friendlyError, identifyPlant,
+  normalizeResult, parseGeminiResponse, parseResult,
 } from './identify.js'
 
 const IMAGE = 'data:image/jpeg;base64,QUJD'
@@ -106,7 +107,8 @@ describe('friendlyError', () => {
   it('explains common failures without exposing raw errors', () => {
     expect(friendlyError({ status: 401 })).toMatch(/key was not accepted/i)
     expect(friendlyError({ status: 403 })).toMatch(/permission/i)
-    expect(friendlyError({ status: 429 })).toMatch(/too many requests/i)
+    expect(friendlyError({ status: 404 })).toMatch(/model is not available/i)
+    expect(friendlyError({ status: 429 })).toMatch(/usage limit/i)
     expect(friendlyError({ status: 400, message: 'Your credit balance is too low' })).toMatch(/no credit/i)
     expect(friendlyError({ status: 400, message: 'bad image' })).toMatch(/could not be processed/i)
     expect(friendlyError({ status: 529 })).toMatch(/busy/i)
@@ -116,10 +118,10 @@ describe('friendlyError', () => {
   })
 })
 
-describe('identifyPlant', () => {
+describe('identifyPlant with Claude', () => {
   it('sends one request through the client and returns the parsed result', async () => {
     const create = vi.fn().mockResolvedValue(message(good()))
-    const result = await identifyPlant({ apiKey: 'k', images: [IMAGE], client: { beta: { messages: { create } } } })
+    const result = await identifyPlant({ provider: 'claude', apiKey: 'k', images: [IMAGE], client: { beta: { messages: { create } } } })
     expect(create).toHaveBeenCalledTimes(1)
     expect(create.mock.calls[0][0].model).toBe('claude-opus-5-5')
     expect(result.plant.commonName).toBe('Pothos')
@@ -127,7 +129,91 @@ describe('identifyPlant', () => {
 
   it('passes API errors through for friendlyError to describe', async () => {
     const create = vi.fn().mockRejectedValue(Object.assign(new Error('nope'), { status: 401 }))
-    await expect(identifyPlant({ apiKey: 'k', images: [IMAGE], client: { beta: { messages: { create } } } }))
+    await expect(identifyPlant({ provider: 'claude', apiKey: 'k', images: [IMAGE], client: { beta: { messages: { create } } } }))
       .rejects.toMatchObject({ status: 401 })
+  })
+})
+
+const geminiAnswer = (payload, extra = {}) => ({
+  candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify(payload) }] }, ...extra }],
+})
+const okResponse = (data) => ({ ok: true, status: 200, json: async () => data })
+const errorResponse = (status, error) => ({ ok: false, status, json: async () => ({ error }) })
+
+describe('Gemini request', () => {
+  it('sends images and a JSON schema, with the key in a header', () => {
+    const body = buildGeminiRequest([IMAGE, IMAGE])
+    const parts = body.contents[0].parts
+    expect(parts.map((part) => Object.keys(part)[0])).toEqual(['inlineData', 'inlineData', 'text'])
+    expect(parts[0].inlineData).toEqual({ mimeType: 'image/jpeg', data: 'QUJD' })
+    expect(body.systemInstruction.parts[0].text).toMatch(/plant care assistant/i)
+    expect(body.generationConfig).toEqual({ responseMimeType: 'application/json', responseJsonSchema: RESULT_SCHEMA })
+  })
+
+  it('posts to the Gemini model endpoint and returns the parsed result', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(okResponse(geminiAnswer(good())))
+    const result = await identifyPlant({ provider: 'gemini', apiKey: 'AIza-test', images: [IMAGE], fetchFn })
+    expect(fetchFn).toHaveBeenCalledTimes(1)
+    const [url, options] = fetchFn.mock.calls[0]
+    expect(url).toBe(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`)
+    expect(options.method).toBe('POST')
+    expect(options.headers['x-goog-api-key']).toBe('AIza-test')
+    expect(url).not.toContain('AIza-test')
+    expect(JSON.parse(options.body).contents[0].parts[0].inlineData.data).toBe('QUJD')
+    expect(result.plant.commonName).toBe('Pothos')
+  })
+
+  it('defaults to Gemini when no provider is given', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(okResponse(geminiAnswer(good())))
+    await identifyPlant({ apiKey: 'k', images: [IMAGE], fetchFn })
+    expect(fetchFn).toHaveBeenCalledTimes(1)
+    expect(DEFAULT_PROVIDER).toBe('gemini')
+  })
+})
+
+describe('Gemini response', () => {
+  it('ignores thought parts and joins the text', () => {
+    const json = JSON.stringify(good())
+    const data = { candidates: [{ finishReason: 'STOP', content: { parts: [{ text: 'thinking...', thought: true }, { text: json.slice(0, 20) }, { text: json.slice(20) }] } }] }
+    expect(parseGeminiResponse(data).plant.commonName).toBe('Pothos')
+  })
+
+  it('reports blocked, truncated, empty and unreadable answers', () => {
+    expect(() => parseGeminiResponse({ promptFeedback: { blockReason: 'SAFETY' } })).toThrow(expect.objectContaining({ code: 'refused' }))
+    expect(() => parseGeminiResponse(geminiAnswer(good(), { finishReason: 'SAFETY' }))).toThrow(expect.objectContaining({ code: 'refused' }))
+    expect(() => parseGeminiResponse(geminiAnswer(good(), { finishReason: 'MAX_TOKENS' }))).toThrow(expect.objectContaining({ code: 'truncated' }))
+    expect(() => parseGeminiResponse({ candidates: [] })).toThrow(expect.objectContaining({ code: 'invalid' }))
+    expect(() => parseGeminiResponse({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: 'nope' }] } }] }))
+      .toThrow(expect.objectContaining({ code: 'invalid' }))
+  })
+
+  it('turns an invalid key response into a friendly message', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(errorResponse(400, {
+      message: 'API key not valid. Please pass a valid API key.',
+      details: [{ reason: 'API_KEY_INVALID' }],
+    }))
+    const error = await identifyPlant({ provider: 'gemini', apiKey: 'bad', images: [IMAGE], fetchFn }).catch((problem) => problem)
+    expect(error.status).toBe(400)
+    expect(error.reason).toBe('API_KEY_INVALID')
+    expect(friendlyError(error)).toMatch(/key was not accepted/i)
+  })
+
+  it('describes quota and permission errors', async () => {
+    const quota = await identifyPlant({
+      provider: 'gemini', apiKey: 'k', images: [IMAGE], fetchFn: vi.fn().mockResolvedValue(errorResponse(429, { message: 'Quota exceeded' })),
+    }).catch((problem) => problem)
+    expect(friendlyError(quota)).toMatch(/usage limit/i)
+
+    const denied = await identifyPlant({
+      provider: 'gemini', apiKey: 'k', images: [IMAGE], fetchFn: vi.fn().mockResolvedValue(errorResponse(403, { message: 'denied' })),
+    }).catch((problem) => problem)
+    expect(friendlyError(denied)).toMatch(/permission/i)
+  })
+
+  it('survives an error response that is not JSON', async () => {
+    const fetchFn = vi.fn().mockResolvedValue({ ok: false, status: 503, json: async () => { throw new Error('not json') } })
+    const error = await identifyPlant({ provider: 'gemini', apiKey: 'k', images: [IMAGE], fetchFn }).catch((problem) => problem)
+    expect(error.status).toBe(503)
+    expect(friendlyError(error)).toMatch(/busy/i)
   })
 })

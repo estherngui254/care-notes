@@ -1,6 +1,7 @@
 const STORAGE_KEY = 'plant-care-notes-plants'
 const THEME_KEY = 'plant-care-notes-theme'
 const API_KEY_KEY = 'plant-care-notes-api-key'
+const PROVIDER_KEY = 'plant-care-notes-provider'
 
 const PROFILE_FIELDS = ['scientificName', 'light', 'water', 'humidity', 'temperature', 'soil', 'fertiliser', 'petSafety']
 
@@ -92,22 +93,51 @@ export function writeTheme(theme) {
   }
 }
 
-// The API key stays in this browser. It is never part of an export.
-export function readApiKey() {
+const keyName = (provider) => `${API_KEY_KEY}-${provider}`
+
+// API keys stay in this browser, one per provider. They are never part of an export.
+export function readApiKey(provider = 'gemini') {
   try {
-    return window.localStorage.getItem(API_KEY_KEY) ?? ''
+    // Earlier versions stored a single Claude key under the plain name.
+    return window.localStorage.getItem(keyName(provider))
+      ?? (provider === 'claude' ? window.localStorage.getItem(API_KEY_KEY) : null)
+      ?? ''
   } catch {
     return ''
   }
 }
 
-export function writeApiKey(key) {
+export function writeApiKey(provider, key) {
   try {
-    if (key) window.localStorage.setItem(API_KEY_KEY, key)
-    else window.localStorage.removeItem(API_KEY_KEY)
+    if (key) {
+      window.localStorage.setItem(keyName(provider), key)
+    } else {
+      window.localStorage.removeItem(keyName(provider))
+      if (provider === 'claude') window.localStorage.removeItem(API_KEY_KEY)
+    }
     return true
   } catch {
     return false
+  }
+}
+
+export function readProvider() {
+  try {
+    const saved = window.localStorage.getItem(PROVIDER_KEY)
+    if (saved === 'gemini' || saved === 'claude') return saved
+    // Keep using Claude for anyone who had already saved a Claude key.
+    if (window.localStorage.getItem(API_KEY_KEY) || window.localStorage.getItem(keyName('claude'))) return 'claude'
+  } catch {
+    // Fall through to the default.
+  }
+  return 'gemini'
+}
+
+export function writeProvider(provider) {
+  try {
+    window.localStorage.setItem(PROVIDER_KEY, provider)
+  } catch {
+    // The choice still applies for this visit.
   }
 }
 
