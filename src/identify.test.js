@@ -212,8 +212,31 @@ describe('Gemini response', () => {
 
   it('survives an error response that is not JSON', async () => {
     const fetchFn = vi.fn().mockResolvedValue({ ok: false, status: 503, json: async () => { throw new Error('not json') } })
-    const error = await identifyPlant({ provider: 'gemini', apiKey: 'k', images: [IMAGE], fetchFn }).catch((problem) => problem)
+    const error = await identifyPlant({ provider: 'gemini', apiKey: 'k', images: [IMAGE], fetchFn, retryDelayMs: 0 }).catch((problem) => problem)
     expect(error.status).toBe(503)
     expect(friendlyError(error)).toMatch(/busy/i)
+  })
+
+  it('retries when Gemini is briefly overloaded, then succeeds', async () => {
+    const fetchFn = vi.fn()
+      .mockResolvedValueOnce(errorResponse(503, { message: 'high demand', status: 'UNAVAILABLE' }))
+      .mockResolvedValueOnce(errorResponse(503, { message: 'high demand', status: 'UNAVAILABLE' }))
+      .mockResolvedValueOnce(okResponse(geminiAnswer(good())))
+    const result = await identifyPlant({ provider: 'gemini', apiKey: 'k', images: [IMAGE], fetchFn, retryDelayMs: 0 })
+    expect(fetchFn).toHaveBeenCalledTimes(3)
+    expect(result.plant.commonName).toBe('Pothos')
+  })
+
+  it('gives up after three overloaded attempts', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(errorResponse(503, { message: 'high demand' }))
+    const error = await identifyPlant({ provider: 'gemini', apiKey: 'k', images: [IMAGE], fetchFn, retryDelayMs: 0 }).catch((problem) => problem)
+    expect(fetchFn).toHaveBeenCalledTimes(3)
+    expect(friendlyError(error)).toMatch(/busy/i)
+  })
+
+  it('does not retry other errors', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(errorResponse(429, { message: 'quota' }))
+    await identifyPlant({ provider: 'gemini', apiKey: 'k', images: [IMAGE], fetchFn, retryDelayMs: 0 }).catch(() => {})
+    expect(fetchFn).toHaveBeenCalledTimes(1)
   })
 })

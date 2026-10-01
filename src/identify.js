@@ -305,11 +305,27 @@ async function callGemini({ apiKey, images, fetchFn }) {
   return parseGeminiResponse(data)
 }
 
-// `provider` is 'gemini' (free tier) or 'claude' (paid). `client` and `fetchFn` are for tests.
-export async function identifyPlant({ provider = DEFAULT_PROVIDER, apiKey, images, client, fetchFn }) {
+// Gemini's free tier often answers 503 "high demand" for a moment, so try a few times.
+const GEMINI_ATTEMPTS = 3
+
+async function callGeminiWithRetry({ apiKey, images, fetchFn, retryDelayMs }) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await callGemini({ apiKey, images, fetchFn })
+    } catch (error) {
+      if (error.status !== 503 || attempt >= GEMINI_ATTEMPTS) throw error
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs * attempt))
+    }
+  }
+}
+
+// `provider` is 'gemini' (free tier) or 'claude' (paid). `client`, `fetchFn` and `retryDelayMs` are for tests.
+export async function identifyPlant({
+  provider = DEFAULT_PROVIDER, apiKey, images, client, fetchFn, retryDelayMs = 2500,
+}) {
   if (provider === 'claude') {
     const sdk = client ?? await createClient(apiKey)
     return parseResult(await sdk.beta.messages.create(buildRequest(images)))
   }
-  return callGemini({ apiKey, images, fetchFn: fetchFn ?? ((...args) => fetch(...args)) })
+  return callGeminiWithRetry({ apiKey, images, fetchFn: fetchFn ?? ((...args) => fetch(...args)), retryDelayMs })
 }
