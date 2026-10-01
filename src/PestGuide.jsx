@@ -1,32 +1,35 @@
-import { KIND_LABELS, PROBLEMS } from './pestsAndDiseases.js'
+import ManagementPlan from './ManagementPlan.jsx'
+import { KIND_GROUPS, KIND_LABELS, NUTRIENT_TIP, PROBLEMS } from './pestsAndDiseases.js'
 
 export default function PestGuide() {
   return (
     <section className="guide no-print" aria-labelledby="guide-heading">
-      <h2 id="guide-heading">Pest and disease guide</h2>
+      <h2 id="guide-heading">Pest, disease and nutrient guide</h2>
       <p className="hint">
         Compare what you see on your plant with these descriptions. This is general guidance, not a diagnosis.
         Always follow the product label, keep treatments away from pets and children, and ask a local nursery
         if a problem keeps coming back.
       </p>
-      <div className="guide-list">
-        {PROBLEMS.map((problem) => (
-          <details key={problem.id} className="guide-item">
-            <summary>
-              {problem.name} <span className="kind">{KIND_LABELS[problem.kind]}</span>
-            </summary>
-            <p>{problem.about}</p>
-            <p className="treatment-title">Signs</p>
-            <ul className="chips" aria-label={`Signs of ${problem.name}`}>
-              {problem.signs.map((sign) => <li key={sign}>{sign}</li>)}
-            </ul>
-            <p className="treatment-title">What to try</p>
-            <ul>
-              {problem.treatment.map((step) => <li key={step}>{step}</li>)}
-            </ul>
-          </details>
-        ))}
-      </div>
+      <p className="tip"><strong>Nutrient tip:</strong> {NUTRIENT_TIP}</p>
+      {KIND_GROUPS.map(({ kind, title }) => (
+        <div key={kind} className="guide-group">
+          <h3>{title}</h3>
+          <div className="guide-list">
+            {PROBLEMS.filter((problem) => problem.kind === kind).map((problem) => (
+              <details key={problem.id} className="guide-item">
+                <summary>
+                  {problem.name} <span className="kind">{KIND_LABELS[problem.kind]}</span>
+                </summary>
+                <p className="treatment-title">Signs</p>
+                <ul className="chips" aria-label={`Signs of ${problem.name}`}>
+                  {problem.signs.map((sign) => <li key={sign}>{sign}</li>)}
+                </ul>
+                <ManagementPlan problem={problem} idPrefix={`guide-${problem.id}`} />
+              </details>
+            ))}
+          </div>
+        </div>
+      ))}
     </section>
   )
 }

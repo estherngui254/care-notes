@@ -39,14 +39,16 @@ Most checks are covered by automated tests (`npm test`). The **Automated test** 
 | 21 | Print | Select **Print care sheet**. | The preview shows plants without forms, buttons or controls. | none | **manual** |
 | 22 | Install and offline | Open the deployed site, install it, then go offline and reload. | The app installs and still opens. Saved plants show. | none | **manual** |
 
-## Pests and diseases
+## Plant health: pests, diseases and nutrients
 
 | # | Check | Steps | Expected | Automated test | Result |
 |---|-------|-------|----------|----------------|--------|
-| 23 | Report a problem | Open **Pests and diseases** on a plant, select **Report a problem**, choose two or more symptoms. | **Possible matches** lists likely pests or diseases, best match first. **Use this** fills in **Suspected problem**. | App.issues.test.jsx, pestsAndDiseases.test.js | |
-| 24 | Save and manage | Save the problem. Mark it resolved, reopen it, then delete it. Edit the plant and refresh. | The problem shows with its treatment tips while open. Tips hide when resolved. Problems survive editing the plant and a refresh. An empty report is refused. | App.issues.test.jsx | |
+| 23 | Report a problem | Open **Plant health** on a plant, select **Report a problem**, choose two or more symptoms. | **Possible matches** lists likely pests, diseases or deficiencies, best match first. **Use this** fills in **Suspected problem**. | App.issues.test.jsx, pestsAndDiseases.test.js | |
+| 24 | Save and manage | Save the problem. Mark it resolved, reopen it, then delete it. Edit the plant and refresh. | The problem shows with its management plan while open. The plan hides when resolved. Problems survive editing the plant and a refresh. An empty report is refused. | App.issues.test.jsx | |
+| 27 | Nutrient detection | Under **What do you suspect?**, choose **Nutrient problem**, then pick symptoms such as yellowing between veins on new leaves. | The nutrient tip shows, only nutrient-related symptoms are offered, and a deficiency such as iron is suggested first. Choosing **Pest or disease** hides the nutrient symptoms. | App.nutrients.test.jsx | |
+| 28 | Management plan | Save a problem with a suspected cause, then tick some **Do now** steps. Refresh. | The plan shows **Do now**, **Prevent a repeat**, **Check again** and **Get help if**. The count of completed steps updates and survives a refresh. | App.nutrients.test.jsx | |
 | 25 | Problem photo | Add a JPEG or PNG of the affected plant or pest. Try a text file. | The photo shows beside the problem and survives a refresh. A non-image is rejected. | App.issues.test.jsx (rejection only) | **manual** (upload and compression) |
-| 26 | Guide | Open entries in **Pest and disease guide**. | Each shows what it is, its signs and what to try. | App.issues.test.jsx | |
+| 26 | Guide | Open entries in **Pest, disease and nutrient guide**. | Entries are grouped as pests, diseases, nutrient deficiencies and care problems. Each shows its signs and management plan. | App.nutrients.test.jsx | |
 
 ## Main workflow run
 

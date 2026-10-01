@@ -64,7 +64,7 @@ The slices above were built as planned. These additions came afterwards and go b
 - Watering schedule ("water every N days") with days since watered, next due date and a "Needs water" list. The brief listed reminders and care schedules as non-goals. The app only shows status and sends no notifications.
 - Photos, saved compressed in browser storage. The brief listed photos as a non-goal.
 - Search, filter, sort, undo delete, JSON export and import, dark mode, print view.
-- A pest and disease section on each plant: a photo of the affected plant or pest, symptoms, a suspected problem, treatment tips and an open or resolved state, plus a general guide. Matching is by chosen symptoms. The photo is not analysed, because automatic image identification would need an external AI service and key.
+- A plant health section on each plant covering pests, diseases and nutrient deficiencies: a photo of the affected plant or pest, symptoms, a suspected problem, an open or resolved state, and a management plan (do now steps with a checklist, prevention, when to check again, when to get help), plus a grouped guide. Matching is by chosen symptoms. The photo is not analysed, because automatic image identification would need an external AI service and key.
 - Installable offline app (PWA), automated tests (Vitest), and deployment to GitHub Pages.
 
 Still out of scope because they need a backend or a third-party service: accounts and sync, identifying plants, pests or diseases automatically from a photo, and care advice from an external plant database.

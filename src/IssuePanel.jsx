@@ -1,34 +1,32 @@
 import { useId, useState } from 'react'
 import MultiSelect from './MultiSelect.jsx'
-import { KIND_LABELS, PROBLEMS, SYMPTOMS, findProblem, matchProblems } from './pestsAndDiseases.js'
+import ManagementPlan from './ManagementPlan.jsx'
+import {
+  CATEGORIES, KIND_GROUPS, KIND_LABELS, NUTRIENT_TIP, PROBLEMS, findProblem, kindsFor, matchProblems, symptomsFor,
+} from './pestsAndDiseases.js'
 import { compressImage } from './photo.js'
 import { formatDate, todayString } from './plantUtils.js'
 
 const ISSUE_PHOTO_SIZE = 360
 
-function Treatment({ problem }) {
-  return (
-    <div className="treatment">
-      <p className="treatment-title">{problem.name}: what to try</p>
-      <p className="treatment-about">{problem.about}</p>
-      <ul>
-        {problem.treatment.map((step) => <li key={step}>{step}</li>)}
-      </ul>
-    </div>
-  )
-}
-
 function IssueForm({ plantName, onSave, onCancel }) {
   const uid = useId()
   const [photo, setPhoto] = useState('')
   const [date, setDate] = useState(todayString())
+  const [category, setCategory] = useState('all')
   const [symptoms, setSymptoms] = useState([])
   const [suspected, setSuspected] = useState('')
   const [notes, setNotes] = useState('')
   const [error, setError] = useState('')
   const [photoError, setPhotoError] = useState('')
   const [busy, setBusy] = useState(false)
-  const matches = matchProblems(symptoms)
+  const matches = matchProblems(symptoms, 3, kindsFor(category))
+
+  function chooseCategory(next) {
+    setCategory(next)
+    const allowed = symptomsFor(next)
+    setSymptoms((current) => current.filter((symptom) => allowed.includes(symptom)))
+  }
 
   async function handlePhoto(event) {
     const file = event.target.files?.[0]
@@ -53,7 +51,7 @@ function IssueForm({ plantName, onSave, onCancel }) {
       return
     }
     onSave({
-      id: crypto.randomUUID(), date, photo, symptoms, suspected, notes: notes.trim(), resolved: false,
+      id: crypto.randomUUID(), date, photo, symptoms, suspected, notes: notes.trim(), resolved: false, stepsDone: [],
     })
   }
 
@@ -63,7 +61,7 @@ function IssueForm({ plantName, onSave, onCancel }) {
       <input id={`${uid}-photo`} type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhoto}
         aria-invalid={Boolean(photoError)} aria-describedby={`${uid}-photo-help`} />
       {photoError ? <p className="error" id={`${uid}-photo-help`} role="alert">{photoError}</p> :
-        <p className="hint" id={`${uid}-photo-help`}>Optional. Take it close up, in good light. It is saved with this plant so you can compare over time.</p>}
+        <p className="hint" id={`${uid}-photo-help`}>Optional. Take it close up, in good light. For a deficiency, show a whole leaf and some new growth.</p>}
       {busy && <p className="hint" role="status">Processing photo…</p>}
       {photo && (
         <div className="photo-preview">
@@ -75,9 +73,21 @@ function IssueForm({ plantName, onSave, onCancel }) {
       <label htmlFor={`${uid}-date`}>Date noticed</label>
       <input id={`${uid}-date`} type="date" value={date} max={todayString()} onChange={(event) => setDate(event.target.value)} />
 
+      <fieldset className="category">
+        <legend>What do you suspect?</legend>
+        {CATEGORIES.map((option) => (
+          <label key={option.value} className="radio">
+            <input type="radio" name={`${uid}-category`} value={option.value} checked={category === option.value}
+              onChange={() => chooseCategory(option.value)} />
+            {option.label}
+          </label>
+        ))}
+      </fieldset>
+      {category === 'nutrient' && <p className="tip">{NUTRIENT_TIP}</p>}
+
       <label id={`${uid}-symptoms-label`} htmlFor={`${uid}-symptoms`}>What do you see?</label>
-      <MultiSelect id={`${uid}-symptoms`} labelId={`${uid}-symptoms-label`} options={SYMPTOMS} value={symptoms}
-        placeholder="Choose symptoms" groupLabel="Symptoms"
+      <MultiSelect id={`${uid}-symptoms`} labelId={`${uid}-symptoms-label`} options={symptomsFor(category)}
+        value={symptoms} placeholder="Choose symptoms" groupLabel="Symptoms"
         onChange={(next) => { setSymptoms(next); setError('') }} />
 
       {matches.length > 0 && (
@@ -104,7 +114,13 @@ function IssueForm({ plantName, onSave, onCancel }) {
       <label htmlFor={`${uid}-suspected`}>Suspected problem</label>
       <select id={`${uid}-suspected`} value={suspected} onChange={(event) => { setSuspected(event.target.value); setError('') }}>
         <option value="">Not sure</option>
-        {PROBLEMS.map((problem) => <option key={problem.id} value={problem.name}>{problem.name}</option>)}
+        {KIND_GROUPS.map(({ kind, title }) => (
+          <optgroup key={kind} label={title}>
+            {PROBLEMS.filter((problem) => problem.kind === kind).map((problem) => (
+              <option key={problem.id} value={problem.name}>{problem.name}</option>
+            ))}
+          </optgroup>
+        ))}
       </select>
 
       <label htmlFor={`${uid}-notes`}>Notes</label>
@@ -130,8 +146,13 @@ export default function IssuePanel({ plant, onChange }) {
     setAdding(false)
   }
 
-  function toggleResolved(id) {
-    onChange(issues.map((issue) => (issue.id === id ? { ...issue, resolved: !issue.resolved } : issue)))
+  function update(id, changes) {
+    onChange(issues.map((issue) => (issue.id === id ? { ...issue, ...changes } : issue)))
+  }
+
+  function toggleStep(issue, step) {
+    const done = issue.stepsDone ?? []
+    update(issue.id, { stepsDone: done.includes(step) ? done.filter((item) => item !== step) : [...done, step] })
   }
 
   function remove(id) {
@@ -140,7 +161,8 @@ export default function IssuePanel({ plant, onChange }) {
 
   return (
     <details className="issues no-print">
-      <summary>Pests and diseases{openCount > 0 ? ` (${openCount} open)` : ''}</summary>
+      <summary>Plant health{openCount > 0 ? ` (${openCount} open)` : ''}</summary>
+      <p className="hint">Record pests, diseases and nutrient problems, and track how you manage them.</p>
       {issues.length === 0 && !adding && <p className="hint">No problems recorded for this plant.</p>}
       {issues.length > 0 && (
         <ul className="issue-list" aria-label={`Problems on ${plant.name}`}>
@@ -162,9 +184,12 @@ export default function IssuePanel({ plant, onChange }) {
                     </ul>
                   )}
                   {issue.notes && <p className="issue-notes">{issue.notes}</p>}
-                  {problem && !issue.resolved && <Treatment problem={problem} />}
+                  {problem && !issue.resolved && (
+                    <ManagementPlan problem={problem} idPrefix={`issue-${issue.id}`}
+                      done={issue.stepsDone ?? []} onToggle={(step) => toggleStep(issue, step)} />
+                  )}
                   <div className="actions">
-                    <button type="button" className="secondary" onClick={() => toggleResolved(issue.id)}>
+                    <button type="button" className="secondary" onClick={() => update(issue.id, { resolved: !issue.resolved })}>
                       {issue.resolved ? 'Reopen' : 'Mark resolved'}
                     </button>
                     <button type="button" className="danger" onClick={() => remove(issue.id)}>Delete problem</button>

@@ -18,6 +18,7 @@ function normalizeIssues(raw) {
       suspected: typeof issue.suspected === 'string' ? issue.suspected : '',
       notes: typeof issue.notes === 'string' ? issue.notes : '',
       resolved: issue.resolved === true,
+      stepsDone: Array.isArray(issue.stepsDone) ? issue.stepsDone.filter((item) => typeof item === 'string') : [],
     }))
 }
 

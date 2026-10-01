@@ -14,7 +14,7 @@ async function addFern(user) {
 }
 
 async function openReportForm(user) {
-  await user.click(screen.getByText(/^pests and diseases/i))
+  await user.click(screen.getByText(/^plant health/i))
   await user.click(screen.getByRole('button', { name: /report a problem/i }))
   return screen.getByRole('form', { name: /report a problem on fern/i })
 }
@@ -25,12 +25,12 @@ async function chooseSymptoms(user, form, symptoms) {
   await user.keyboard('{Escape}')
 }
 
-describe('pest and disease section', () => {
+describe('plant health section', () => {
   it('shows an empty message and a guide', async () => {
     const { user } = setup()
     await addFern(user)
     expect(screen.getByText(/no problems recorded for this plant/i)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /pest and disease guide/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /pest, disease and nutrient guide/i })).toBeInTheDocument()
     expect(screen.getByText(/spider mites/i, { selector: 'summary' })).toBeInTheDocument()
   })
 
@@ -53,7 +53,7 @@ describe('pest and disease section', () => {
     expect(within(list).getByText('Open')).toBeInTheDocument()
     expect(within(list).getByText('Under the lowest leaves')).toBeInTheDocument()
     expect(within(list).getByText(/dab each insect/i)).toBeInTheDocument()
-    expect(screen.getByText(/pests and diseases \(1 open\)/i)).toBeInTheDocument()
+    expect(screen.getByText(/plant health \(1 open\)/i)).toBeInTheDocument()
   })
 
   it('refuses an empty report', async () => {
@@ -86,7 +86,7 @@ describe('pest and disease section', () => {
     await user.click(screen.getByRole('button', { name: /mark resolved/i }))
     expect(screen.getByText('Resolved')).toBeInTheDocument()
     expect(within(list).queryByText(/take the plant out of its pot/i)).not.toBeInTheDocument()
-    expect(screen.getByText(/^pests and diseases$/i)).toBeInTheDocument()
+    expect(screen.getByText(/^plant health$/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /reopen/i }))
     expect(screen.getByText('Open')).toBeInTheDocument()
@@ -105,10 +105,10 @@ describe('pest and disease section', () => {
     await user.click(screen.getByRole('button', { name: 'Edit Fern' }))
     await user.type(screen.getByLabelText(/plant name/i), ' Two')
     await user.click(screen.getByRole('button', { name: /save changes/i }))
-    expect(screen.getByText(/pests and diseases \(1 open\)/i)).toBeInTheDocument()
+    expect(screen.getByText(/plant health \(1 open\)/i)).toBeInTheDocument()
 
     unmount()
     render(<App />)
-    expect(screen.getByText(/pests and diseases \(1 open\)/i)).toBeInTheDocument()
+    expect(screen.getByText(/plant health \(1 open\)/i)).toBeInTheDocument()
   })
 })

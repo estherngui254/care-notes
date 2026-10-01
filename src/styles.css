@@ -153,6 +153,20 @@ label.sub-label { font-weight: 600; margin-top: 12px; }
 .matches ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .matches li { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
 .matches li p { margin: 2px 0 0; color: var(--muted); font-size: .88rem; }
+.category { border: 0; padding: 0; margin: 14px 0 0; display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.category legend { font-weight: 700; padding: 0; margin-bottom: 6px; }
+.radio { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 400; }
+.radio input { width: auto; margin: 0; padding: 0; }
+.tip { background: var(--chip-bg); color: var(--text); border-radius: 8px; padding: 10px 12px; font-size: .88rem; line-height: 1.5; margin: 10px 0 0; }
+.plan { margin-top: 8px; border-left: 3px solid var(--accent); padding-left: 12px; }
+.plan ul:not(.steps) { margin: 4px 0 0; padding-left: 20px; line-height: 1.5; }
+.plan-text { margin: 2px 0 0; line-height: 1.5; }
+.progress { font-weight: 400; color: var(--muted); }
+.steps { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; }
+.steps li { display: flex; align-items: flex-start; gap: 8px; line-height: 1.45; }
+.steps input { width: auto; margin: 4px 0 0; padding: 0; flex-shrink: 0; }
+.steps label { margin: 0; font-weight: 400; }
+.guide-group h3 { margin: 18px 0 8px; }
 .guide { margin-top: 30px; }
 .guide h2 { margin-bottom: 4px; }
 .guide-list { display: grid; gap: 8px; margin-top: 10px; }

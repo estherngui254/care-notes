@@ -10,7 +10,8 @@ A small React + Vite app for keeping care notes for your houseplants. Everything
 - Care note built from a multi-select list of care recommendations, plus free text for other care.
 - Optional last watered date and a "water every N days" schedule. The app shows days since watering, when the next watering is due, and lists plants that need water.
 - Optional photo, shrunk before saving.
-- Pests and diseases: on each plant, report a problem with a photo of the affected plant or pest, the symptoms you see and a date. The app ranks likely causes from the symptoms, shows treatment tips, and lets you mark a problem resolved. A built-in guide lists common pests and diseases. It does not analyse photos, so the photo is for your own comparison and records.
+- Plant health: on each plant, report a pest, disease or nutrient problem with a photo of the affected plant or pest, the symptoms you see and a date. Say whether you suspect a pest or disease, a nutrient problem, or are not sure, and the app ranks likely causes from the symptoms. It covers 7 pests, 5 diseases and 6 nutrient deficiencies (nitrogen, phosphorus, potassium, magnesium, iron and calcium), plus fertiliser build-up and dry air. It does not analyse photos, so the photo is for your own comparison and records.
+- Management plans: each problem has steps to do now (a checklist you can tick off), how to prevent a repeat, when to check again and when to get help. You can mark a problem resolved or reopen it. A built-in guide lists every pest, disease and deficiency with its signs and plan.
 - Search, filter by recommendation, and sort (newest, name, longest since watered, next watering due).
 - Undo after deleting a plant.
 - Export and import a JSON backup.
@@ -50,7 +51,7 @@ Open the local address shown in the terminal. Keep the terminal running.
 - src/plantUtils.js: watering status, sorting and filtering
 - src/storage.js: reading, writing, migrating and backing up saved data
 - src/photo.js: photo validation and compression
-- src/IssuePanel.jsx, src/PestGuide.jsx, src/pestsAndDiseases.js: problem reports, the guide, and the symptom matching data
+- src/IssuePanel.jsx, src/ManagementPlan.jsx, src/PestGuide.jsx, src/pestsAndDiseases.js: problem reports, management plans, the guide, and the symptom matching data
 - src/plantTypes.js, src/careRecommendations.js: the option lists
 - public/: web app manifest, icons and the offline service worker
 - docs/implementation-plan.md: the slice-by-slice build plan and scope changes
