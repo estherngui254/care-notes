@@ -3,7 +3,7 @@ import { PROBLEMS } from './pestsAndDiseases.js'
 
 // To trade accuracy for lower cost, switch to 'claude-sonnet-5-5'.
 export const MODEL = 'claude-opus-5-5'
-export const GEMINI_MODEL = 'gemini-3.8-flash'
+export const GEMINI_MODEL = 'gemini-2.5-flash'
 export const MAX_PHOTOS = 3
 
 export const DEFAULT_PROVIDER = 'gemini'

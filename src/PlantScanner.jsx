@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { DEFAULT_PROVIDER, MAX_PHOTOS, PROVIDERS, friendlyError, identifyPlant } from './identify.js'
 import { KIND_LABELS, findProblem } from './pestsAndDiseases.js'
 import { compressImage, resizeDataUrl } from './photo.js'
+import { CameraIcon } from './icons.jsx'
 import { todayString } from './plantUtils.js'
 import { plantFromScan } from './scanToPlant.js'
 import { readApiKey, readProvider, writeApiKey, writeProvider } from './storage.js'
@@ -264,8 +265,8 @@ export default function PlantScanner({ onSavePlant, identify = identifyPlant }) 
   }
 
   return (
-    <section className="panel scanner no-print" aria-labelledby="scan-heading">
-      <h2 id="scan-heading">Identify a plant from a photo</h2>
+    <section className="panel scanner no-print" id="identify" aria-labelledby="scan-heading">
+      <h2 id="scan-heading"><CameraIcon size={22} /> Identify a plant from a photo</h2>
       <p className="hint">
         Take or choose up to {MAX_PHOTOS} photos of one plant: the whole plant, a close-up of a leaf, and any problem area.
         You get its name, care needs and a health check.

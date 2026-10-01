@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { buildBackup, parseBackup, readPlants, readTheme, writePlants, writeTheme } from './storage.js'
 import { filterPlants, sortPlants, todayString, wateringStatus } from './plantUtils.js'
+import { CameraIcon, DropIcon, LeafIcon, MoonIcon, PlantArt, PlusIcon, PrintIcon, SproutIcon, SunIcon } from './icons.jsx'
 import PlantForm from './PlantForm.jsx'
 import PlantCard from './PlantCard.jsx'
 import PlantControls from './PlantControls.jsx'
@@ -44,6 +45,8 @@ export default function App() {
     [plants, query, recommendation, sort, today],
   )
   const thirsty = plants.filter((plant) => wateringStatus(plant, today).needsWater)
+  const openIssues = plants.reduce((total, plant) => total + (plant.issues ?? []).filter((issue) => !issue.resolved).length, 0)
+  const countLabel = filtering ? `${visiblePlants.length} of ${plants.length}` : plants.length
 
   function resetForm() {
     setEditingId(null)
@@ -101,6 +104,14 @@ export default function App() {
     setRecommendation('')
   }
 
+  function toggleTheme() {
+    setTheme((current) => {
+      const next = current === 'dark' ? 'light' : 'dark'
+      writeTheme(next)
+      return next
+    })
+  }
+
   function exportBackup() {
     const blob = new Blob([buildBackup(plants)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -132,100 +143,140 @@ export default function App() {
   }
 
   return (
-    <main className="shell">
-      <header className="hero">
-        <div className="hero-top">
-          <p className="eyebrow">HOUSEPLANT CARE</p>
-          <button type="button" className="secondary theme-toggle no-print"
-            onClick={() => setTheme((current) => {
-              const next = current === 'dark' ? 'light' : 'dark'
-              writeTheme(next)
-              return next
-            })}>
-            {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+    <>
+      <header className="topbar no-print">
+        <div className="topbar-inner">
+          <a className="brand" href="#top">
+            <span className="brand-mark"><LeafIcon size={18} /></span>
+            <span className="brand-name">Plant Care Notes</span>
+          </a>
+          <nav className="topnav" aria-label="Sections">
+            <a href="#identify">Identify</a>
+            <a href="#add-plant">Add plant</a>
+            <a href="#my-plants">My plants</a>
+            <a href="#guide">Guide</a>
+            <a href="#backup">Backup</a>
+          </nav>
+          <button type="button" className="secondary theme-toggle" onClick={toggleTheme}>
+            {theme === 'dark' ? <SunIcon size={16} /> : <MoonIcon size={16} />}
+            <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
           </button>
         </div>
-        <h1>Plant Care Notes</h1>
-        <p className="intro">Keep a short care note for each of your houseplants, all in one place.</p>
       </header>
 
-      <PlantScanner onSavePlant={addScannedPlant} />
-
-      <section className="panel no-print form-panel" aria-labelledby="form-heading">
-        <h2 id="form-heading">{editingPlant ? 'Edit plant' : 'Add a plant'}</h2>
-        <PlantForm key={formKey} plant={editingPlant} onSubmit={handleSubmit} onCancel={resetForm} />
-      </section>
-
-      {storageWarning && <p className="notice" role="status">This browser could not save changes. Your list may not survive a refresh.</p>}
-
-      {thirsty.length > 0 && (
-        <section className="due" aria-labelledby="due-heading">
-          <h2 id="due-heading">Needs water <span className="count">{thirsty.length}</span></h2>
-          <ul>
-            {thirsty.map((plant) => (
-              <li key={plant.id}><strong>{plant.name}</strong> <span>{wateringStatus(plant, today).label}</span></li>
-            ))}
-          </ul>
+      <main className="shell" id="top">
+        <section className="hero" aria-labelledby="hero-title">
+          <div className="hero-copy">
+            <p className="eyebrow">Your houseplant journal</p>
+            <h1 id="hero-title">Plant Care Notes</h1>
+            <p className="intro">
+              Snap a photo to identify a plant, then keep its care, watering and health notes together in one calm place.
+            </p>
+            <div className="hero-actions no-print">
+              <a className="btn btn-light" href="#identify"><CameraIcon size={18} /> Identify from a photo</a>
+              <a className="btn btn-ghost" href="#add-plant"><PlusIcon size={18} /> Add a plant</a>
+            </div>
+            <ul className="hero-stats" aria-label="Summary">
+              <li><strong>{plants.length}</strong><span>{plants.length === 1 ? 'plant' : 'plants'}</span></li>
+              <li><strong>{thirsty.length}</strong><span>to water</span></li>
+              <li><strong>{openIssues}</strong><span>open {openIssues === 1 ? 'issue' : 'issues'}</span></li>
+            </ul>
+          </div>
+          <PlantArt className="hero-art" />
         </section>
-      )}
 
-      <section className="records" aria-labelledby="plants-heading">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">YOUR PLANTS</p>
-            <h2 id="plants-heading">Plants <span className="count">{filtering ? `${visiblePlants.length} of ${plants.length}` : plants.length}</span></h2>
+        {storageWarning && <p className="notice" role="status">This browser could not save changes. Your list may not survive a refresh.</p>}
+
+        <div className="layout">
+          <div className="col-main">
+            {thirsty.length > 0 && (
+              <section className="due" aria-labelledby="due-heading">
+                <h2 id="due-heading"><DropIcon size={20} /> Needs water <span className="count">{thirsty.length}</span></h2>
+                <ul>
+                  {thirsty.map((plant) => (
+                    <li key={plant.id}><strong>{plant.name}</strong> <span>{wateringStatus(plant, today).label}</span></li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            <section className="records" id="my-plants" aria-labelledby="plants-heading">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Your collection</p>
+                  <h2 id="plants-heading">Plants <span className="count">{countLabel}</span></h2>
+                </div>
+                {plants.length > 0 && (
+                  <button type="button" className="secondary no-print" onClick={() => window.print()}>
+                    <PrintIcon size={16} /> Print care sheet
+                  </button>
+                )}
+              </div>
+
+              {plants.length > 0 && (
+                <PlantControls query={query} recommendation={recommendation} sort={sort} filtering={filtering}
+                  onQuery={setQuery} onRecommendation={setRecommendation} onSort={setSort} onClear={clearFilters} />
+              )}
+
+              {plants.length === 0 ? (
+                <div className="empty">
+                  <PlantArt className="empty-art" />
+                  <h3>No plants saved yet</h3>
+                  <p>Add your first plant to keep its care notes in one place.</p>
+                  <button type="button" onClick={focusForm}>Add your first plant</button>
+                </div>
+              ) : visiblePlants.length === 0 ? (
+                <div className="empty">
+                  <h3>No plants match</h3>
+                  <p>Try a different search or clear the filters.</p>
+                  <button type="button" onClick={clearFilters}>Clear filters</button>
+                </div>
+              ) : (
+                <ul className="record-list" aria-label="Your plants">
+                  {visiblePlants.map((plant) => (
+                    <PlantCard key={plant.id} plant={plant} today={today} onEdit={startEdit} onDelete={deletePlant}
+                      onIssuesChange={updateIssues} />
+                  ))}
+                </ul>
+              )}
+            </section>
           </div>
-          {plants.length > 0 && <button type="button" className="secondary no-print" onClick={() => window.print()}>Print care sheet</button>}
+
+          <div className="col-side">
+            <PlantScanner onSavePlant={addScannedPlant} />
+
+            <section className="panel no-print form-panel" id="add-plant" aria-labelledby="form-heading">
+              <h2 id="form-heading"><SproutIcon size={22} /> {editingPlant ? 'Edit plant' : 'Add a plant'}</h2>
+              <PlantForm key={formKey} plant={editingPlant} onSubmit={handleSubmit} onCancel={resetForm} />
+            </section>
+          </div>
         </div>
 
-        {plants.length > 0 && (
-          <PlantControls query={query} recommendation={recommendation} sort={sort} filtering={filtering}
-            onQuery={setQuery} onRecommendation={setRecommendation} onSort={setSort} onClear={clearFilters} />
+        <PestGuide />
+
+        <section className="backup no-print" id="backup" aria-labelledby="backup-heading">
+          <p className="eyebrow">Your data</p>
+          <h2 id="backup-heading">Backup</h2>
+          <p className="hint">Plants live only in this browser. Export a file to keep a copy, or import one to restore it.</p>
+          <div className="actions">
+            <button type="button" className="secondary" onClick={exportBackup} disabled={plants.length === 0}>Export plants</button>
+            <button type="button" className="secondary" onClick={() => importRef.current?.click()}>Import plants</button>
+            <input ref={importRef} type="file" accept="application/json,.json" hidden aria-label="Import backup file" onChange={importBackup} />
+          </div>
+          {backupMessage && <p className="hint" role="status">{backupMessage}</p>}
+        </section>
+
+        {undo && (
+          <div className="toast" role="status">
+            <span>Deleted {undo.plant.name}.</span>
+            <button type="button" onClick={undoDelete}>Undo</button>
+          </div>
         )}
+      </main>
 
-        {plants.length === 0 ? (
-          <div className="empty">
-            <h3>No plants saved yet</h3>
-            <p>Add your first plant to keep its care notes in one place.</p>
-            <button type="button" onClick={focusForm}>Add your first plant</button>
-          </div>
-        ) : visiblePlants.length === 0 ? (
-          <div className="empty">
-            <h3>No plants match</h3>
-            <p>Try a different search or clear the filters.</p>
-            <button type="button" onClick={clearFilters}>Clear filters</button>
-          </div>
-        ) : (
-          <ul className="record-list" aria-label="Your plants">
-            {visiblePlants.map((plant) => (
-              <PlantCard key={plant.id} plant={plant} today={today} onEdit={startEdit} onDelete={deletePlant}
-                onIssuesChange={updateIssues} />
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <PestGuide />
-
-      <section className="backup no-print" aria-labelledby="backup-heading">
-        <h2 id="backup-heading">Backup</h2>
-        <p className="hint">Plants live only in this browser. Export a file to keep a copy, or import one to restore it.</p>
-        <div className="actions">
-          <button type="button" className="secondary" onClick={exportBackup} disabled={plants.length === 0}>Export plants</button>
-          <button type="button" className="secondary" onClick={() => importRef.current?.click()}>Import plants</button>
-          <input ref={importRef} type="file" accept="application/json,.json" hidden aria-label="Import backup file" onChange={importBackup} />
-        </div>
-        {backupMessage && <p className="hint" role="status">{backupMessage}</p>}
-      </section>
-
-      {undo && (
-        <div className="toast" role="status">
-          <span>Deleted {undo.plant.name}.</span>
-          <button type="button" onClick={undoDelete}>Undo</button>
-        </div>
-      )}
-
-      <footer><p>Plants are saved in this browser only. Browser storage is not a secure or shared database.</p></footer>
-    </main>
+      <footer className="site-footer">
+        <p>Plants are saved in this browser only. Browser storage is not a secure or shared database.</p>
+      </footer>
+    </>
   )
 }

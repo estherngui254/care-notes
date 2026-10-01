@@ -1,5 +1,5 @@
 // Caches the app so it opens offline. Plants themselves live in localStorage, not here.
-const CACHE = 'plant-care-notes-v1'
+const CACHE = 'plant-care-notes-v2'
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png']
 
 self.addEventListener('install', (event) => {
