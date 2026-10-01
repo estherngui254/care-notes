@@ -417,6 +417,9 @@ button.link:hover { transform: none; box-shadow: none; }
 .basket-total strong { font-family: var(--font-display); font-size: 1.15rem; color: var(--heading); margin-left: 4px; }
 .basket-total span { color: var(--muted); font-size: .88rem; }
 .basket .actions { margin-top: 10px; }
+.basket-pay { margin: 0 0 4px; font-size: .9rem; color: var(--muted); }
+.basket-pay strong { color: var(--heading); }
+.till { font-family: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace; font-weight: 700; letter-spacing: .08em; color: var(--accent); }
 
 /* ---------- Toast and footer ---------- */
 .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; background: #123a29; color: #fff; border-radius: 16px; padding: 11px 14px 11px 18px; box-shadow: var(--shadow-lift); z-index: 40; max-width: calc(100% - 24px); }

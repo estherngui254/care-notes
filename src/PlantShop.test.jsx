@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import PlantShop from './PlantShop.jsx'
 import App from './App.jsx'
-import { SHOP_CATEGORIES, SHOP_ITEMS, formatKsh, formatUsd, usdFromKsh } from './shopItems.js'
+import { MPESA, SHOP_CATEGORIES, SHOP_ITEMS, formatKsh, formatUsd, usdFromKsh } from './shopItems.js'
 
 function shopGrid() {
   return screen.getByRole('list', { name: 'Items for sale' })
@@ -87,6 +87,27 @@ describe('PlantShop', () => {
     expect(status).toHaveTextContent(formatKsh(withQty))
     expect(status).toHaveTextContent(formatUsd(usdFromKsh(withQty)))
     expect(screen.queryByRole('region', { name: /your basket/i })).not.toBeInTheDocument()
+  })
+
+  it('offers M-PESA payment with a till number', async () => {
+    const user = userEvent.setup({ applyAccept: false })
+    render(<PlantShop />)
+    expect(screen.getByText(/pay by M-PESA \(Buy Goods till/i)).toBeInTheDocument()
+    await user.click(within(cardFor('Peace Lily')).getByRole('button', { name: 'Add Peace Lily to basket' }))
+    const basket = screen.getByRole('region', { name: /your basket/i })
+    expect(within(basket).getByText(/Pay with/)).toBeInTheDocument()
+    expect(within(basket).getByText(MPESA.provider)).toBeInTheDocument()
+    expect(within(basket).getByText(MPESA.till)).toBeInTheDocument()
+  })
+
+  it('repeats the M-PESA till number in the order confirmation', async () => {
+    const user = userEvent.setup({ applyAccept: false })
+    render(<PlantShop />)
+    await user.click(within(cardFor('Terracotta pot')).getByRole('button', { name: 'Add Terracotta pot to basket' }))
+    await user.click(screen.getByRole('button', { name: 'Place order' }))
+    const status = screen.getByRole('status')
+    expect(status).toHaveTextContent(`Pay ${MPESA.provider} to ${MPESA.method} till ${MPESA.till}`)
+    expect(status).toHaveTextContent('cash on collection or delivery')
   })
 
   it('removes a whole line from the basket', async () => {

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { BagIcon } from './icons.jsx'
-import { SHOP_CATEGORIES, SHOP_ITEMS, formatKsh, formatUsd, usdFromKsh } from './shopItems.js'
+import { MPESA, SHOP_CATEGORIES, SHOP_ITEMS, formatKsh, formatUsd, usdFromKsh } from './shopItems.js'
 
 const ALL = 'all'
 
@@ -58,7 +58,8 @@ export default function PlantShop() {
     setOrder(
       `Order saved in this browser: ${basketCount} ${basketCount === 1 ? 'item' : 'items'}, `
       + `${formatKsh(totalKsh)} (about ${formatUsd(totalUsd)}). `
-      + 'No payment is taken online — pay on collection or delivery.',
+      + `Pay ${MPESA.provider} to ${MPESA.method} till ${MPESA.till}, `
+      + 'or pay cash on collection or delivery. Nothing is charged from this site.',
     )
     setBasket({})
   }
@@ -69,8 +70,9 @@ export default function PlantShop() {
       <h2 id="shop-heading"><BagIcon size={22} /> Buy plants, media and pots</h2>
       <p className="hint">
         Browse indoor ornamental plants and flowers, plant media and pots. Every price shows the
-        Kenyan shilling amount and its approximate dollar value. Nothing is charged online: build a
-        basket, place an order, and pay on collection or delivery.
+        Kenyan shilling amount and its approximate dollar value. Nothing is charged automatically:
+        build a basket, place an order, then pay by {MPESA.provider} ({MPESA.method} till{' '}
+        {MPESA.till}) or cash on collection or delivery.
       </p>
 
       <div className="controls shop-filters" role="search" aria-label="Filter the shop">
@@ -126,6 +128,10 @@ export default function PlantShop() {
           </ul>
           <p className="basket-total">
             Total <strong>{formatKsh(totalKsh)}</strong> <span>about {formatUsd(totalUsd)}</span>
+          </p>
+          <p className="basket-pay">
+            Pay with <strong>{MPESA.provider}</strong> — {MPESA.method} till{' '}
+            <strong className="till">{MPESA.till}</strong>, or cash on collection or delivery.
           </p>
           <div className="actions">
             <button type="button" onClick={placeOrder}>Place order</button>

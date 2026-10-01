@@ -3,6 +3,15 @@
 // indicative rate so the two currencies can never drift apart.
 export const KSH_PER_USD = 129.28
 
+// The payment method offered at checkout: M-PESA Buy Goods (Lipa na M-PESA).
+// The till number below is a random sample for the demo — replace it with the
+// shop's real Buy Goods till before taking live orders.
+export const MPESA = {
+  provider: 'M-PESA',
+  method: 'Buy Goods',
+  till: '296741',
+}
+
 export const SHOP_CATEGORIES = [
   { id: 'plant', label: 'Indoor plants and flowers' },
   { id: 'media', label: 'Plant media' },
