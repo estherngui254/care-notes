@@ -95,13 +95,13 @@ describe('nutrient deficiency detection', () => {
     expect(within(again).getByLabelText(/feed with a balanced liquid fertiliser/i)).toBeChecked()
   })
 
-  it('groups the guide and includes the nutrient deficiencies', async () => {
+  it('offers every guide group and includes the nutrient deficiencies', async () => {
     setup()
     const guide = screen.getByRole('region', { name: /pest, disease and nutrient guide/i })
     for (const title of ['Pests', 'Diseases', 'Nutrient deficiencies', 'Care problems']) {
-      expect(within(guide).getByRole('heading', { name: title })).toBeInTheDocument()
+      expect(within(guide).getByRole('option', { name: title })).toBeInTheDocument()
     }
-    expect(within(guide).getByText(/magnesium deficiency/i, { selector: 'summary' })).toBeInTheDocument()
+    expect(within(guide).getByRole('rowheader', { name: 'Magnesium deficiency' })).toBeInTheDocument()
     expect(within(guide).getByText(/nutrient tip/i)).toBeInTheDocument()
   })
 })

@@ -31,7 +31,7 @@ describe('plant health section', () => {
     await addFern(user)
     expect(screen.getByText(/no problems recorded for this plant/i)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /pest, disease and nutrient guide/i })).toBeInTheDocument()
-    expect(screen.getByText(/spider mites/i, { selector: 'summary' })).toBeInTheDocument()
+    expect(screen.getByRole('rowheader', { name: 'Spider mites' })).toBeInTheDocument()
   })
 
   it('suggests matches from the chosen symptoms and records the problem', async () => {
