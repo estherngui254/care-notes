@@ -74,6 +74,7 @@ Open the local address shown in the terminal. Keep the terminal running.
 - src/photo.js: photo validation and compression
 - src/PlantScanner.jsx, src/identify.js, src/scanToPlant.js: the photo identification screen, the Claude API request and result handling, and turning a result into a saved plant
 - src/IssuePanel.jsx, src/ManagementPlan.jsx, src/PestGuide.jsx, src/pestsAndDiseases.js: problem reports, management plans, the guide, and the symptom matching data
+- src/PlantShop.jsx, src/shopItems.js: the plant shop, its catalogue and the KSh/USD prices
 - src/plantTypes.js, src/careRecommendations.js: the option lists
 - public/: web app manifest, icons and the offline service worker
 - docs/implementation-plan.md: the slice-by-slice build plan and scope changes

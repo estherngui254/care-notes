@@ -63,6 +63,14 @@ The tests use a fake service, so checks 29 to 31 need a real API key. A free Goo
 | 33 | Phone camera | On a phone, select **Take photo**. | The camera opens, and the photo appears as a thumbnail ready to analyse. | none | **manual** |
 | 34 | Errors | Use a wrong key. Turn on airplane mode and try again. Add a fourth photo. | Plain messages: key not accepted, you are offline, up to 3 photos. Nothing crashes. | PlantScanner.test.jsx, identify.test.js | |
 
+## Plant shop
+
+| # | Check | Steps | Expected | Automated test | Result |
+|---|-------|-------|----------|----------------|--------|
+| 35 | Browse the shop | Open **Shop**. Search by name or size, then filter by category and clear. | Every item shows its name and its price in KSh and dollars; the count updates; no matches shows a message and a clear button. | PlantShop.test.jsx | |
+| 36 | Basket and order | Add two items, change a quantity with +, remove one, then select **Place order**. | The basket shows per-item and total prices in both currencies. Placing an order confirms the amount in KSh and dollars and empties the basket. | PlantShop.test.jsx | |
+| 37 | Shop on a phone | Resize the window to phone width. | The item cards stack into one column and stay readable. | none | **manual** |
+
 ## Main workflow run
 
 Add a plant, see it in the list, edit it, refresh to confirm it was saved, then delete it. All steps should work using only the visible controls.

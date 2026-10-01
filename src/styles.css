@@ -387,6 +387,37 @@ button.link:hover { transform: none; box-shadow: none; }
 .backup h2 { margin-bottom: 2px; }
 .backup .actions { margin-top: 10px; }
 
+/* ---------- Shop ---------- */
+.shop { margin-top: 44px; }
+.shop h2 { margin-bottom: 6px; }
+.shop-filters { margin-top: 18px; }
+.shop-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.shop-card { display: grid; gap: 6px; align-content: start; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 16px; }
+.shop-card h3 { margin: 0; }
+.shop-card .kind { justify-self: start; }
+.shop-detail { margin: 0; color: var(--muted); font-size: .84rem; line-height: 1.5; }
+.shop-price { display: flex; align-items: baseline; gap: 8px; margin: 4px 0 6px; }
+.shop-ksh { font-family: var(--font-display); font-weight: 600; font-size: 1.2rem; color: var(--heading); }
+.shop-usd { color: var(--muted); font-size: .86rem; }
+.shop-card button { justify-self: start; }
+.shop-empty { margin-top: 10px; text-align: center; color: var(--muted); background: var(--surface); border: 1px dashed var(--line); border-radius: 18px; padding: 26px 16px; }
+.shop-empty button { margin-left: 8px; }
+.shop-order { background: var(--ok-bg); color: var(--ok-text); border-radius: 14px; padding: 10px 14px; margin: 0 0 14px; }
+.basket { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 16px 18px; margin-bottom: 14px; }
+.basket-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.basket-head h3 { margin: 0; display: flex; align-items: center; gap: 8px; }
+.basket-list { list-style: none; display: grid; gap: 8px; margin: 12px 0; padding: 0; }
+.basket-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; background: var(--surface-2); border-radius: 12px; padding: 9px 12px; }
+.basket-name { font-weight: 600; color: var(--heading); margin-right: auto; }
+.basket-price { color: var(--muted); font-size: .84rem; }
+.qty { display: inline-flex; align-items: center; gap: 6px; }
+.qty button { padding: 3px 10px; font-size: .9rem; }
+.qty-value { min-width: 1.2em; text-align: center; font-weight: 600; }
+.basket-total { margin: 0 0 4px; }
+.basket-total strong { font-family: var(--font-display); font-size: 1.15rem; color: var(--heading); margin-left: 4px; }
+.basket-total span { color: var(--muted); font-size: .88rem; }
+.basket .actions { margin-top: 10px; }
+
 /* ---------- Toast and footer ---------- */
 .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; background: #123a29; color: #fff; border-radius: 16px; padding: 11px 14px 11px 18px; box-shadow: var(--shadow-lift); z-index: 40; max-width: calc(100% - 24px); }
 .toast span { overflow-wrap: anywhere; }

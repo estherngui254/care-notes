@@ -6,6 +6,7 @@ import PlantForm from './PlantForm.jsx'
 import PlantCard from './PlantCard.jsx'
 import PlantControls from './PlantControls.jsx'
 import PestGuide from './PestGuide.jsx'
+import PlantShop from './PlantShop.jsx'
 import PlantScanner from './PlantScanner.jsx'
 
 const UNDO_MS = 8000
@@ -155,6 +156,7 @@ export default function App() {
             <a href="#add-plant">Add plant</a>
             <a href="#my-plants">My plants</a>
             <a href="#guide">Guide</a>
+            <a href="#shop">Shop</a>
             <a href="#backup">Backup</a>
           </nav>
           <button type="button" className="secondary theme-toggle" onClick={toggleTheme}>
@@ -253,6 +255,8 @@ export default function App() {
         </div>
 
         <PestGuide />
+
+        <PlantShop />
 
         <section className="backup no-print" id="backup" aria-labelledby="backup-heading">
           <p className="eyebrow">Your data</p>

@@ -77,6 +77,14 @@ export const PrintIcon = (props) => (
   </Icon>
 )
 
+// A shopping bag icon for the plant shop.
+export const BagIcon = (props) => (
+  <Icon {...props}>
+    <path d="M5.5 8h13l-1 11.5a1.5 1.5 0 0 1-1.5 1.4H8a1.5 1.5 0 0 1-1.5-1.4L5.5 8Z" />
+    <path d="M9 10V6.8a3 3 0 0 1 6 0V10" />
+  </Icon>
+)
+
 // A larger decorative plant used in the hero and empty states.
 export function PlantArt({ className = '' }) {
   return (
