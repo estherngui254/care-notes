@@ -99,7 +99,7 @@ describe('nutrient deficiency detection', () => {
     setup()
     const guide = screen.getByRole('region', { name: /pest, disease and nutrient guide/i })
     for (const title of ['Pests', 'Diseases', 'Nutrient deficiencies', 'Care problems']) {
-      expect(within(guide).getByRole('option', { name: title })).toBeInTheDocument()
+      expect(within(guide).getByText(title, { selector: '.guide-section-title' })).toBeInTheDocument()
     }
     expect(within(guide).getByRole('rowheader', { name: 'Magnesium deficiency' })).toBeInTheDocument()
     expect(within(guide).getByText(/nutrient tip/i)).toBeInTheDocument()
