@@ -39,6 +39,15 @@ Most checks are covered by automated tests (`npm test`). The **Automated test** 
 | 21 | Print | Select **Print care sheet**. | The preview shows plants without forms, buttons or controls. | none | **manual** |
 | 22 | Install and offline | Open the deployed site, install it, then go offline and reload. | The app installs and still opens. Saved plants show. | none | **manual** |
 
+## Pests and diseases
+
+| # | Check | Steps | Expected | Automated test | Result |
+|---|-------|-------|----------|----------------|--------|
+| 23 | Report a problem | Open **Pests and diseases** on a plant, select **Report a problem**, choose two or more symptoms. | **Possible matches** lists likely pests or diseases, best match first. **Use this** fills in **Suspected problem**. | App.issues.test.jsx, pestsAndDiseases.test.js | |
+| 24 | Save and manage | Save the problem. Mark it resolved, reopen it, then delete it. Edit the plant and refresh. | The problem shows with its treatment tips while open. Tips hide when resolved. Problems survive editing the plant and a refresh. An empty report is refused. | App.issues.test.jsx | |
+| 25 | Problem photo | Add a JPEG or PNG of the affected plant or pest. Try a text file. | The photo shows beside the problem and survives a refresh. A non-image is rejected. | App.issues.test.jsx (rejection only) | **manual** (upload and compression) |
+| 26 | Guide | Open entries in **Pest and disease guide**. | Each shows what it is, its signs and what to try. | App.issues.test.jsx | |
+
 ## Main workflow run
 
 Add a plant, see it in the list, edit it, refresh to confirm it was saved, then delete it. All steps should work using only the visible controls.

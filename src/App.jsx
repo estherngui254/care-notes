@@ -4,6 +4,7 @@ import { filterPlants, sortPlants, todayString, wateringStatus } from './plantUt
 import PlantForm from './PlantForm.jsx'
 import PlantCard from './PlantCard.jsx'
 import PlantControls from './PlantControls.jsx'
+import PestGuide from './PestGuide.jsx'
 
 const UNDO_MS = 8000
 
@@ -52,9 +53,13 @@ export default function App() {
     if (editingPlant) {
       setPlants((current) => current.map((plant) => (plant.id === editingPlant.id ? { ...plant, ...values } : plant)))
     } else {
-      setPlants((current) => [{ id: crypto.randomUUID(), ...values, createdAt: new Date().toISOString() }, ...current])
+      setPlants((current) => [{ id: crypto.randomUUID(), ...values, issues: [], createdAt: new Date().toISOString() }, ...current])
     }
     resetForm()
+  }
+
+  function updateIssues(plantId, issues) {
+    setPlants((current) => current.map((plant) => (plant.id === plantId ? { ...plant, issues } : plant)))
   }
 
   function startEdit(plant) {
@@ -186,11 +191,14 @@ export default function App() {
         ) : (
           <ul className="record-list" aria-label="Your plants">
             {visiblePlants.map((plant) => (
-              <PlantCard key={plant.id} plant={plant} today={today} onEdit={startEdit} onDelete={deletePlant} />
+              <PlantCard key={plant.id} plant={plant} today={today} onEdit={startEdit} onDelete={deletePlant}
+                onIssuesChange={updateIssues} />
             ))}
           </ul>
         )}
       </section>
+
+      <PestGuide />
 
       <section className="backup no-print" aria-labelledby="backup-heading">
         <h2 id="backup-heading">Backup</h2>

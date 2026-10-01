@@ -1,6 +1,7 @@
 import { formatDate, wateringStatus } from './plantUtils.js'
+import IssuePanel from './IssuePanel.jsx'
 
-export default function PlantCard({ plant, today, onEdit, onDelete }) {
+export default function PlantCard({ plant, today, onEdit, onDelete, onIssuesChange }) {
   const status = wateringStatus(plant, today)
   return (
     <li className="record">
@@ -20,6 +21,7 @@ export default function PlantCard({ plant, today, onEdit, onDelete }) {
         <button type="button" className="secondary" aria-label={`Edit ${plant.name}`} onClick={() => onEdit(plant)}>Edit</button>
         <button type="button" className="danger" aria-label={`Delete ${plant.name}`} onClick={() => onDelete(plant)}>Delete</button>
       </div>
+      <IssuePanel plant={plant} onChange={(issues) => onIssuesChange(plant.id, issues)} />
     </li>
   )
 }

@@ -6,6 +6,21 @@ function mergeType(name, type) {
   return `${name} (${type})`.slice(0, 80)
 }
 
+function normalizeIssues(raw) {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((issue) => issue && typeof issue.id === 'string')
+    .map((issue) => ({
+      id: issue.id,
+      date: typeof issue.date === 'string' ? issue.date : '',
+      photo: typeof issue.photo === 'string' && issue.photo.startsWith('data:image/') ? issue.photo : '',
+      symptoms: Array.isArray(issue.symptoms) ? issue.symptoms.filter((item) => typeof item === 'string') : [],
+      suspected: typeof issue.suspected === 'string' ? issue.suspected : '',
+      notes: typeof issue.notes === 'string' ? issue.notes : '',
+      resolved: issue.resolved === true,
+    }))
+}
+
 // Keeps only well-formed plants and fills in fields added since earlier versions.
 export function normalizePlants(raw) {
   if (!Array.isArray(raw)) return []
@@ -22,6 +37,7 @@ export function normalizePlants(raw) {
       waterEveryDays: Number.isInteger(plant.waterEveryDays) && plant.waterEveryDays >= 1
         && plant.waterEveryDays <= 365 ? plant.waterEveryDays : null,
       photo: typeof plant.photo === 'string' && plant.photo.startsWith('data:image/') ? plant.photo : '',
+      issues: normalizeIssues(plant.issues),
     }))
 }
 

@@ -9,12 +9,12 @@ export function validateImageFile(file) {
 }
 
 // Shrinks the photo so many of them fit in browser storage.
-export async function compressImage(file) {
+export async function compressImage(file, maxDimension = MAX_DIMENSION) {
   const problem = validateImageFile(file)
   if (problem) throw new Error(problem)
   try {
     const bitmap = await createImageBitmap(file)
-    const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height))
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height))
     const canvas = document.createElement('canvas')
     canvas.width = Math.max(1, Math.round(bitmap.width * scale))
     canvas.height = Math.max(1, Math.round(bitmap.height * scale))
