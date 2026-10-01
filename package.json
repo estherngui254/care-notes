@@ -15,6 +15,7 @@
     "deploy": "npm run build && gh-pages -d dist"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

@@ -6,6 +6,7 @@ A small React + Vite app for keeping care notes for your houseplants. Everything
 
 ## Features
 
+- Identify a plant from a photo: take or choose up to 3 photos and the app tells you the plant type, its care requirements (light, water, humidity, temperature, soil, fertiliser, pet safety) and checks it for pests, diseases and nutrient deficiencies. You can save the result as a plant, with its problems recorded and its care requirements on its card. This uses the Claude AI service and needs your own API key (see below).
 - Add, edit and delete plants. Pick a plant name from a list of common indoor plants or type your own.
 - Care note built from a multi-select list of care recommendations, plus free text for other care.
 - Optional last watered date and a "water every N days" schedule. The app shows days since watering, when the next watering is due, and lists plants that need water.
@@ -17,6 +18,19 @@ A small React + Vite app for keeping care notes for your houseplants. Everything
 - Export and import a JSON backup.
 - Light and dark mode, and a print view for a care sheet.
 - Installable as an app and works offline (PWA).
+
+## Identify from a photo: setup, cost and privacy
+
+Photo identification is the only feature that needs the internet and an account. Everything else works offline with no account.
+
+1. Create an API key in the [Anthropic Console](https://console.anthropic.com/) and set a low spend limit on it.
+2. Paste it into **Identify a plant from a photo** the first time you use it. Use **Remove key** to forget it.
+3. Take or choose photos, then select **Identify and check health**.
+
+- **Where the key lives:** only in this browser's localStorage. The app has no server, so the key is sent straight from your browser to Anthropic. It is never included in an export. Anyone who can use this browser could use the key, so avoid shared computers and keep a low spend limit.
+- **What is sent:** your photos, only when you select Identify. They are resized to 1024 pixels first.
+- **Cost:** each scan is billed to your key, roughly a few cents with the default model. To make it cheaper, change `MODEL` in `src/identify.js` to `claude-sonnet-5-5`. This may identify plants a little less reliably.
+- **Accuracy:** results are an AI estimate from photos and can be wrong. The app shows its confidence and suggests photos that would help.
 
 ## Requirements
 
@@ -51,6 +65,7 @@ Open the local address shown in the terminal. Keep the terminal running.
 - src/plantUtils.js: watering status, sorting and filtering
 - src/storage.js: reading, writing, migrating and backing up saved data
 - src/photo.js: photo validation and compression
+- src/PlantScanner.jsx, src/identify.js, src/scanToPlant.js: the photo identification screen, the Claude API request and result handling, and turning a result into a saved plant
 - src/IssuePanel.jsx, src/ManagementPlan.jsx, src/PestGuide.jsx, src/pestsAndDiseases.js: problem reports, management plans, the guide, and the symptom matching data
 - src/plantTypes.js, src/careRecommendations.js: the option lists
 - public/: web app manifest, icons and the offline service worker
@@ -59,11 +74,11 @@ Open the local address shown in the terminal. Keep the terminal running.
 
 ## Data and privacy
 
-Plants are stored in this browser's localStorage. They are not encrypted, shared or synced, and clearing site data deletes them. Use **Export plants** to keep a backup. Do not enter sensitive personal information.
+Plants are stored in this browser's localStorage, apart from photos you send for identification (see above). They are not encrypted, shared or synced, and clearing site data deletes them. Use **Export plants** to keep a backup. Do not enter sensitive personal information.
 
 ## Not included
 
-Accounts and cross-device sync, automatic identification of plants, pests or diseases from a photo, and care advice from an outside plant database. Each would need a backend or a third-party service, such as an AI vision API with a key.
+Accounts and cross-device sync, and a shared backend that would let people use photo identification without their own API key. Each would need a server.
 
 ## License
 

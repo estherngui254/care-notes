@@ -50,6 +50,19 @@ Most checks are covered by automated tests (`npm test`). The **Automated test** 
 | 25 | Problem photo | Add a JPEG or PNG of the affected plant or pest. Try a text file. | The photo shows beside the problem and survives a refresh. A non-image is rejected. | App.issues.test.jsx (rejection only) | **manual** (upload and compression) |
 | 26 | Guide | Open entries in **Pest, disease and nutrient guide**. | Entries are grouped as pests, diseases, nutrient deficiencies and care problems. Each shows its signs and management plan. | App.nutrients.test.jsx | |
 
+## Identify from a photo
+
+The tests use a fake service, so checks 29 to 31 need a real API key and a few cents of credit. Use a key with a low spend limit.
+
+| # | Check | Steps | Expected | Automated test | Result |
+|---|-------|-------|----------|----------------|--------|
+| 29 | Key setup | Open **Identify a plant from a photo**. Try saving an empty key, then paste a real key. Select **Remove key**. | An empty key is refused. A saved key shows the photo buttons. **Remove key** brings back the key form. The key is not in an exported backup. | PlantScanner.test.jsx | |
+| 30 | Identify a plant | Choose a clear photo of a houseplant (a second close-up of a leaf is a good test) and select **Identify and check health**. | After a short wait it shows the plant name, scientific name and confidence, care requirements, and a health check. A photo of something that is not a plant says it could not be identified. | PlantScanner.test.jsx (fake service) | **manual** (real service) |
+| 31 | Find a problem | Photograph a plant with a visible problem such as mealybugs, spotted leaves or yellow leaves. | The health check lists the problem with the signs it can see and steps to try. Compare it with the guide. | none | **manual** |
+| 32 | Save the result | Select **Save as a plant**. | The plant appears in the list with its photo, a **Care requirements** section and any problems under **Plant health**. | PlantScanner.test.jsx | |
+| 33 | Phone camera | On a phone, select **Take photo**. | The camera opens, and the photo appears as a thumbnail ready to analyse. | none | **manual** |
+| 34 | Errors | Use a wrong key. Turn on airplane mode and try again. Add a fourth photo. | Plain messages: key not accepted, you are offline, up to 3 photos. Nothing crashes. | PlantScanner.test.jsx, identify.test.js | |
+
 ## Main workflow run
 
 Add a plant, see it in the list, edit it, refresh to confirm it was saved, then delete it. All steps should work using only the visible controls.

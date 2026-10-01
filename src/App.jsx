@@ -5,6 +5,7 @@ import PlantForm from './PlantForm.jsx'
 import PlantCard from './PlantCard.jsx'
 import PlantControls from './PlantControls.jsx'
 import PestGuide from './PestGuide.jsx'
+import PlantScanner from './PlantScanner.jsx'
 
 const UNDO_MS = 8000
 
@@ -56,6 +57,10 @@ export default function App() {
       setPlants((current) => [{ id: crypto.randomUUID(), ...values, issues: [], createdAt: new Date().toISOString() }, ...current])
     }
     resetForm()
+  }
+
+  function addScannedPlant(values) {
+    setPlants((current) => [{ id: crypto.randomUUID(), ...values, createdAt: new Date().toISOString() }, ...current])
   }
 
   function updateIssues(plantId, issues) {
@@ -144,7 +149,9 @@ export default function App() {
         <p className="intro">Keep a short care note for each of your houseplants, all in one place.</p>
       </header>
 
-      <section className="panel no-print" aria-labelledby="form-heading">
+      <PlantScanner onSavePlant={addScannedPlant} />
+
+      <section className="panel no-print form-panel" aria-labelledby="form-heading">
         <h2 id="form-heading">{editingPlant ? 'Edit plant' : 'Add a plant'}</h2>
         <PlantForm key={formKey} plant={editingPlant} onSubmit={handleSubmit} onCancel={resetForm} />
       </section>

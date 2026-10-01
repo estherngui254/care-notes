@@ -8,6 +8,26 @@ export function validateImageFile(file) {
   return ''
 }
 
+// Re-encodes an existing image (a data URL) at a smaller size, for saving.
+export function resizeDataUrl(dataUrl, maxDimension = MAX_DIMENSION) {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => {
+      const scale = Math.min(1, maxDimension / Math.max(image.width, image.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(image.width * scale))
+      canvas.height = Math.max(1, Math.round(image.height * scale))
+      const context = canvas.getContext('2d')
+      context.fillStyle = '#ffffff'
+      context.fillRect(0, 0, canvas.width, canvas.height)
+      context.drawImage(image, 0, 0, canvas.width, canvas.height)
+      resolve(canvas.toDataURL('image/jpeg', 0.72))
+    }
+    image.onerror = () => reject(new Error('That image could not be read.'))
+    image.src = dataUrl
+  })
+}
+
 // Shrinks the photo so many of them fit in browser storage.
 export async function compressImage(file, maxDimension = MAX_DIMENSION) {
   const problem = validateImageFile(file)

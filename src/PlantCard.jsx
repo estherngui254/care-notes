@@ -1,6 +1,17 @@
 import { formatDate, wateringStatus } from './plantUtils.js'
 import IssuePanel from './IssuePanel.jsx'
 
+const PROFILE_ROWS = [
+  ['scientificName', 'Scientific name'],
+  ['light', 'Light'],
+  ['water', 'Water'],
+  ['humidity', 'Humidity'],
+  ['temperature', 'Temperature'],
+  ['soil', 'Soil'],
+  ['fertiliser', 'Fertiliser'],
+  ['petSafety', 'Pets'],
+]
+
 export default function PlantCard({ plant, today, onEdit, onDelete, onIssuesChange }) {
   const status = wateringStatus(plant, today)
   return (
@@ -21,6 +32,19 @@ export default function PlantCard({ plant, today, onEdit, onDelete, onIssuesChan
         <button type="button" className="secondary" aria-label={`Edit ${plant.name}`} onClick={() => onEdit(plant)}>Edit</button>
         <button type="button" className="danger" aria-label={`Delete ${plant.name}`} onClick={() => onDelete(plant)}>Delete</button>
       </div>
+      {plant.careProfile && (
+        <details className="issues profile no-print">
+          <summary>Care requirements</summary>
+          <dl className="care-grid">
+            {PROFILE_ROWS.filter(([key]) => plant.careProfile[key]).map(([key, label]) => (
+              <div key={key}>
+                <dt>{label}</dt>
+                <dd>{plant.careProfile[key]}</dd>
+              </div>
+            ))}
+          </dl>
+        </details>
+      )}
       <IssuePanel plant={plant} onChange={(issues) => onIssuesChange(plant.id, issues)} />
     </li>
   )

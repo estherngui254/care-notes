@@ -67,7 +67,9 @@ The slices above were built as planned. These additions came afterwards and go b
 - A plant health section on each plant covering pests, diseases and nutrient deficiencies: a photo of the affected plant or pest, symptoms, a suspected problem, an open or resolved state, and a management plan (do now steps with a checklist, prevention, when to check again, when to get help), plus a grouped guide. Matching is by chosen symptoms. The photo is not analysed, because automatic image identification would need an external AI service and key.
 - Installable offline app (PWA), automated tests (Vitest), and deployment to GitHub Pages.
 
-Still out of scope because they need a backend or a third-party service: accounts and sync, identifying plants, pests or diseases automatically from a photo, and care advice from an external plant database.
+- Photo identification (plant type, care requirements and a health check for pests, diseases and nutrient deficiencies) using the Claude vision API from the browser. It needs the user's own API key, kept in localStorage, and works only online. This is the one feature that sends data off the device, so the README documents the privacy and cost. A shared backend would let people use it without a key but needs a server, which the app does not have.
+
+Still out of scope because they need a backend or an account: accounts and sync, and a hosted service for photo identification.
 
 ## Not in scope (from the brief)
 Accounts or sync, reminders or care schedules, plant identification or external advice, photos, maps or social features, and any backend.

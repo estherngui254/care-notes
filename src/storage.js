@@ -1,5 +1,15 @@
 const STORAGE_KEY = 'plant-care-notes-plants'
 const THEME_KEY = 'plant-care-notes-theme'
+const API_KEY_KEY = 'plant-care-notes-api-key'
+
+const PROFILE_FIELDS = ['scientificName', 'light', 'water', 'humidity', 'temperature', 'soil', 'fertiliser', 'petSafety']
+
+function normalizeProfile(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  const profile = {}
+  for (const field of PROFILE_FIELDS) profile[field] = typeof raw[field] === 'string' ? raw[field].slice(0, 400) : ''
+  return PROFILE_FIELDS.some((field) => profile[field]) ? profile : null
+}
 
 function mergeType(name, type) {
   if (typeof type !== 'string' || !type || name.toLowerCase().includes(type.toLowerCase())) return name
@@ -39,6 +49,7 @@ export function normalizePlants(raw) {
         && plant.waterEveryDays <= 365 ? plant.waterEveryDays : null,
       photo: typeof plant.photo === 'string' && plant.photo.startsWith('data:image/') ? plant.photo : '',
       issues: normalizeIssues(plant.issues),
+      careProfile: normalizeProfile(plant.careProfile),
     }))
 }
 
@@ -78,6 +89,25 @@ export function writeTheme(theme) {
     window.localStorage.setItem(THEME_KEY, theme)
   } catch {
     // The theme still applies for this visit.
+  }
+}
+
+// The API key stays in this browser. It is never part of an export.
+export function readApiKey() {
+  try {
+    return window.localStorage.getItem(API_KEY_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+export function writeApiKey(key) {
+  try {
+    if (key) window.localStorage.setItem(API_KEY_KEY, key)
+    else window.localStorage.removeItem(API_KEY_KEY)
+    return true
+  } catch {
+    return false
   }
 }
 
