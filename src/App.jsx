@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { buildBackup, parseBackup, readPlants, readTheme, writePlants, writeTheme } from './storage.js'
 import { deleteUser, readSession, signOutUser } from './accounts.js'
-import AuthDialog from './AuthDialog.jsx'
+import AuthScreen from './AuthScreen.jsx'
 import { filterPlants, sortPlants, todayString, wateringStatus } from './plantUtils.js'
 import { CameraIcon, DropIcon, LeafIcon, MoonIcon, PlantArt, PlusIcon, PrintIcon, SproutIcon, SunIcon } from './icons.jsx'
 import PlantForm from './PlantForm.jsx'
@@ -14,7 +14,7 @@ import PlantScanner from './PlantScanner.jsx'
 
 const UNDO_MS = 8000
 
-// Everything the signed-in person (or the guest) sees. It is remounted when the person changes,
+// Everything a signed-in person sees. It is remounted when the person changes,
 // so one account's plants are never shown to another.
 function Workspace({ auth }) {
   const scope = auth.user?.id
@@ -27,17 +27,12 @@ function Workspace({ auth }) {
   const [sort, setSort] = useState('newest')
   const [undo, setUndo] = useState(null)
   const [backupMessage, setBackupMessage] = useState('')
-  const [theme, setTheme] = useState(readTheme)
   const [storageWarning, setStorageWarning] = useState(false)
   const importRef = useRef(null)
 
   useEffect(() => {
     setStorageWarning(!writePlants(plants, scope))
   }, [plants, scope])
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme
-  }, [theme])
 
   useEffect(() => {
     if (!undo) return undefined
@@ -112,14 +107,6 @@ function Workspace({ auth }) {
     setRecommendation('')
   }
 
-  function toggleTheme() {
-    setTheme((current) => {
-      const next = current === 'dark' ? 'light' : 'dark'
-      writeTheme(next)
-      return next
-    })
-  }
-
   function exportBackup() {
     const blob = new Blob([buildBackup(plants)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -168,24 +155,15 @@ function Workspace({ auth }) {
             <a href="#backup">Backup</a>
           </nav>
           <div className="account-bar">
-            {auth.user ? (
-              <>
-                <span className="user-chip" title={auth.user.email}>
-                  <span className="avatar" aria-hidden="true">{auth.user.name.trim().charAt(0).toUpperCase()}</span>
-                  <span className="user-name">{auth.user.name}</span>
-                </span>
-                <button type="button" className="secondary" onClick={auth.signOut}>Sign out</button>
-              </>
-            ) : (
-              <>
-                <button type="button" className="secondary" onClick={() => auth.open('signin')}>Sign in</button>
-                <button type="button" className="account-cta" onClick={() => auth.open('register')}>Create account</button>
-              </>
-            )}
+            <span className="user-chip" title={auth.user.email}>
+              <span className="avatar" aria-hidden="true">{auth.user.name.trim().charAt(0).toUpperCase()}</span>
+              <span className="user-name">{auth.user.name}</span>
+            </span>
+            <button type="button" className="secondary" onClick={auth.signOut}>Sign out</button>
           </div>
-          <button type="button" className="secondary theme-toggle" onClick={toggleTheme}>
-            {theme === 'dark' ? <SunIcon size={16} /> : <MoonIcon size={16} />}
-            <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+          <button type="button" className="secondary theme-toggle" onClick={auth.toggleTheme}>
+            {auth.theme === 'dark' ? <SunIcon size={16} /> : <MoonIcon size={16} />}
+            <span>{auth.theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
           </button>
         </div>
       </header>
@@ -202,15 +180,7 @@ function Workspace({ auth }) {
               <a className="btn btn-light" href="#identify"><CameraIcon size={18} /> Identify from a photo</a>
               <a className="btn btn-ghost" href="#add-plant"><PlusIcon size={18} /> Add a plant</a>
             </div>
-            {auth.user ? (
-              <p className="hero-account">Signed in as <strong>{auth.user.name}</strong>. These are your plants.</p>
-            ) : (
-              <p className="hero-account no-print">
-                New here?{' '}
-                <button type="button" className="link-light" onClick={() => auth.open('register')}>Create a free account</button>
-                {' '}to keep your plants in your own space, or carry on as a guest.
-              </p>
-            )}
+            <p className="hero-account">Signed in as <strong>{auth.user.name}</strong>. These are your plants.</p>
             <ul className="hero-stats" aria-label="Summary">
               <li><strong>{plants.length}</strong><span>{plants.length === 1 ? 'plant' : 'plants'}</span></li>
               <li><strong>{thirsty.length}</strong><span>to water</span></li>
@@ -350,10 +320,16 @@ function Workspace({ auth }) {
 
 const WELCOME_MS = 7000
 
+// The app is only shown to someone who is signed in. Until then, the only thing on screen is the
+// sign-in and register page, so no plants, guide, shop or editing controls are rendered at all.
 export default function App() {
   const [user, setUser] = useState(readSession)
-  const [dialogTab, setDialogTab] = useState(null)
+  const [theme, setTheme] = useState(readTheme)
   const [welcome, setWelcome] = useState('')
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+  }, [theme])
 
   useEffect(() => {
     if (!welcome) return undefined
@@ -361,9 +337,16 @@ export default function App() {
     return () => clearTimeout(timer)
   }, [welcome])
 
+  function toggleTheme() {
+    setTheme((current) => {
+      const next = current === 'dark' ? 'light' : 'dark'
+      writeTheme(next)
+      return next
+    })
+  }
+
   function handleAuthenticated(person, { created, moved }) {
     setUser(person)
-    setDialogTab(null)
     const extra = moved > 0 ? ` ${moved} ${moved === 1 ? 'plant was' : 'plants were'} added to your account.` : ''
     setWelcome(created ? `Welcome, ${person.name}. Your account is ready.${extra}` : `Welcome back, ${person.name}.`)
   }
@@ -380,15 +363,12 @@ export default function App() {
     setWelcome('Your account was deleted from this device.')
   }
 
-  const auth = { user, open: setDialogTab, signOut, deleteAccount }
-
   return (
     <>
-      <div inert={dialogTab ? true : undefined} aria-hidden={dialogTab ? true : undefined}>
-        <Workspace key={user?.id ?? 'guest'} auth={auth} />
-      </div>
-      {dialogTab && (
-        <AuthDialog key={dialogTab} initialTab={dialogTab} onClose={() => setDialogTab(null)} onAuthenticated={handleAuthenticated} />
+      {user ? (
+        <Workspace key={user.id} auth={{ user, signOut, deleteAccount, theme, toggleTheme }} />
+      ) : (
+        <AuthScreen onAuthenticated={handleAuthenticated} theme={theme} onToggleTheme={toggleTheme} />
       )}
       {welcome && <div className="toast welcome-toast" role="status"><span>{welcome}</span></div>}
     </>

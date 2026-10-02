@@ -18,7 +18,7 @@ A small React + Vite app for keeping care notes for your houseplants. Everything
 - Export and import a JSON backup.
 - Light and dark mode, and a print view for a care sheet.
 - Installable as an app and works offline (PWA).
-- Register and sign in: select **Create account** or **Sign in** in the top bar (or the link in the banner). Accounts keep each person's plants separate on a shared device, and you can keep using the app as a guest without one. See "Accounts" below for what they do and do not do.
+- Sign in first: the app opens on a sign-in and register page, and nothing else is shown or editable until you are signed in. Accounts keep each person's plants separate on a shared device. See "Accounts" below for what they do and do not do.
 - A scannable QR code (in the **Share** section) that opens the live site, with a copy-link button and a download of the code as an image. The code always points to the published address in `src/site.js`, even when the app is open on another address, and is always dark on white so every phone can scan it.
 
 ## Identify from a photo: setup, cost and privacy
@@ -43,15 +43,15 @@ Create a key in the [Anthropic Console](https://console.anthropic.com/) and set 
 
 ## Accounts
 
-You can register with a name, an email address and a password (at least 8 characters), then sign in and out. You can also carry on as a guest.
+Everyone has to sign in first. When the app opens, the only thing shown is a page to **sign in** or **create an account** (a name, an email address and a password of at least 8 characters). The plants, shop, guide, photo identification and every editing control are not shown at all until you are signed in. There is no guest mode.
 
 **These accounts live in this browser only.** The app has no server, so:
-- Each account gets its own plants, separate from the guest's and from other accounts on the same browser. If guest plants already exist, you can add them to a new account when you register.
+- Each account gets its own plants, separate from other accounts on the same browser. If plants were saved here before accounts existed, you can add them to your account when you register.
 - The password is never stored. Only a salted hash of it is (PBKDF2 with SHA-256).
 - Five wrong passwords in a row pause sign-in for 30 seconds.
 - Accounts and plants **do not sync between devices**. Use **Export plants** to move them.
 - There is **no password reset by email**. Someone who forgot their password can remove the account from the sign-in screen and register again, which deletes the plants in it. Export a backup now and then.
-- This keeps honest people's plants apart. It is not strong security: anyone who can open this browser's developer tools can read or change the stored data. Do not reuse a password from another site, and do not store anything sensitive.
+- **The sign-in page is a gate in the app, not a lock on the data.** It stops anyone using the app without signing in and keeps honest people's plants apart. But the data is in this browser's storage and the app's code is public, so anyone who can open developer tools or the browser's files can read or change it. Do not reuse a password from another site, and do not store anything sensitive.
 - **Keep me signed in on this device** keeps you signed in after closing the browser. Turn it off on a shared computer.
 
 Real accounts that sync across devices would need a server or a service such as Supabase or Firebase. The code in `src/accounts.js` is the only place that would need to change.
@@ -87,7 +87,7 @@ Open the local address shown in the terminal. Keep the terminal running.
 - src/PlantCard.jsx, src/PlantControls.jsx: list item and search/filter/sort controls
 - src/MultiSelect.jsx: the checkbox dropdown used for care recommendations
 - src/plantUtils.js: watering status, sorting and filtering
-- src/accounts.js, src/AuthDialog.jsx: registering, signing in and out, password hashing, sessions and the sign-in dialog
+- src/accounts.js, src/AuthScreen.jsx: registering, signing in and out, password hashing, sessions and the sign-in page
 - src/storage.js: reading, writing, migrating and backing up saved data
 - src/photo.js: photo validation and compression
 - src/PlantScanner.jsx, src/identify.js, src/scanToPlant.js: the photo identification screen, the Claude API request and result handling, and turning a result into a saved plant

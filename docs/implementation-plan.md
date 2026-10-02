@@ -69,7 +69,7 @@ The slices above were built as planned. These additions came afterwards and go b
 
 - Photo identification (plant type, care requirements and a health check for pests, diseases and nutrient deficiencies) using a vision AI service called from the browser. The user chooses Google Gemini (free tier, the default) or Claude (paid). It needs the user's own API key, kept in localStorage, and works only online. On the Gemini free tier Google may use the photos, which the app and README say. This is the one feature that sends data off the device, so the README documents the privacy and cost. A shared backend would let people use it without a key but needs a server, which the app does not have.
 
-- Registering and signing in, as accounts stored in the browser (a salted PBKDF2 password hash, a short lockout after repeated wrong passwords, and a separate set of plants per account), with guest use still available. The brief listed accounts as a non-goal. These keep different people's plants apart on one device, but they are not real accounts: there is no sync and no email reset, and the README says so.
+- Registering and signing in, as accounts stored in the browser (a salted PBKDF2 password hash, a short lockout after repeated wrong passwords, and a separate set of plants per account), and the whole app is hidden behind a sign-in page, so nothing can be seen or edited until someone signs in. The brief listed accounts as a non-goal. These keep different people's plants apart on one device, but they are not real accounts: there is no sync and no email reset, and the README says so.
 
 Still out of scope because they need a backend or an account: accounts that sync across devices, password reset by email, and a hosted service for photo identification.
 
