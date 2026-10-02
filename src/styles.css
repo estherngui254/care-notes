@@ -440,6 +440,17 @@ button.link:hover { transform: none; box-shadow: none; }
 .avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; color: #fff; font-weight: 700; font-size: .85rem; background: linear-gradient(135deg, var(--hero-from), var(--hero-to)); }
 .hero-account { margin: 16px 0 0; font-size: .92rem; color: rgb(255 255 255 / 88%); max-width: 56ch; }
 .hero-account strong { color: #fff; }
+button.link-light { display: inline; background: none; border: 0; box-shadow: none; padding: 0; font-weight: 700; color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+button.link-light:hover { transform: none; box-shadow: none; filter: none; }
+button.link-light:focus-visible { outline-color: #fff; }
+.sync-status { display: inline-block; font-size: .8rem; font-weight: 700; padding: 1px 10px; border-radius: 999px; background: rgb(255 255 255 / 16%); border: 1px solid rgb(255 255 255 / 24%); }
+.sync-offline, .sync-error, .sync-setup { background: rgb(255 214 120 / 28%); border-color: rgb(255 214 120 / 55%); }
+.gate-loading { min-height: 100vh; display: grid; place-items: center; color: var(--muted); font-weight: 600; }
+.legacy-notice { margin: 18px 0 0; }
+.legacy-notice p { margin: 0 0 4px; }
+.actions.stacked { flex-direction: column; }
+.actions.stacked button { width: 100%; }
+.notice code { font-size: .88em; background: rgb(0 0 0 / 8%); padding: 1px 6px; border-radius: 6px; }
 
 /* Sign-in gate: the only thing shown until someone signs in or registers */
 .gate { min-height: 100vh; display: flex; flex-direction: column; }

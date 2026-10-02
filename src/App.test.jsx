@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import App from './App.jsx'
+import { fakeSupabase } from './test/fakeSupabase.js'
 
 function setup() {
   return { user: userEvent.setup(), ...render(<App />) }
@@ -86,14 +87,19 @@ describe('Plant Care Notes', () => {
     expect(screen.getByText('Pothos')).toBeInTheDocument()
   })
 
-  it('shows a warning instead of crashing when storage is blocked (check 9)', async () => {
-    const original = Storage.prototype.setItem
-    Storage.prototype.setItem = () => { throw new Error('blocked') }
-    try {
-      render(<App />)
-      expect(await screen.findByText(/could not save changes/i)).toBeInTheDocument()
-    } finally {
-      Storage.prototype.setItem = original
-    }
+  it('keeps working and says so when saving to the account fails, then recovers (check 9)', async () => {
+    const { user } = setup()
+    expect(await screen.findByText('Saved to your account.')).toBeInTheDocument()
+
+    fakeSupabase.state.offline = true
+    await addPlant(user, { name: 'Offline Fern', note: 'Mist daily' })
+    expect(screen.getByText('Offline Fern')).toBeInTheDocument()
+    expect(await screen.findByText(/you are offline/i)).toBeInTheDocument()
+
+    fakeSupabase.state.offline = false
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByText('Saved to your account.')).toBeInTheDocument()
+    const [account] = fakeSupabase.state.users
+    expect(fakeSupabase.rowsFor(account.id).map((row) => row.data.name)).toEqual(['Offline Fern'])
   })
 })

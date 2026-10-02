@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { buildBackup, parseBackup, readPlants, readTheme, writePlants, writeTheme } from './storage.js'
-import { deleteUser, readSession, signOutUser } from './accounts.js'
-import AuthScreen from './AuthScreen.jsx'
+import { buildBackup, parseBackup, readTheme, writeTheme } from './storage.js'
+import { deleteMyAccount, getCurrentPerson, readCachedPerson, signOutPerson, watchAuth } from './auth.js'
+import { useCloudPlants } from './useCloudPlants.js'
+import { clearLegacyPlants, readLegacyPlants, removeOldAccounts } from './legacy.js'
+import AuthScreen, { SetNewPassword } from './AuthScreen.jsx'
 import { filterPlants, sortPlants, todayString, wateringStatus } from './plantUtils.js'
 import { CameraIcon, DropIcon, LeafIcon, MoonIcon, PlantArt, PlusIcon, PrintIcon, SproutIcon, SunIcon } from './icons.jsx'
 import PlantForm from './PlantForm.jsx'
@@ -16,10 +18,18 @@ const UNDO_MS = 8000
 
 // Everything a signed-in person sees. It is remounted when the person changes,
 // so one account's plants are never shown to another.
+const SYNC_LABELS = {
+  loading: 'Loading your plants…',
+  saving: 'Saving…',
+  saved: 'Saved to your account.',
+}
+
 function Workspace({ auth }) {
-  const scope = auth.user?.id
-  const [plants, setPlants] = useState(() => readPlants(scope))
+  const { plants, setPlants, status, detail, retry, finish } = useCloudPlants(auth.user.id)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+  const [legacy, setLegacy] = useState(readLegacyPlants)
+  const [legacyHidden, setLegacyHidden] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formKey, setFormKey] = useState(0)
   const [query, setQuery] = useState('')
@@ -27,12 +37,28 @@ function Workspace({ auth }) {
   const [sort, setSort] = useState('newest')
   const [undo, setUndo] = useState(null)
   const [backupMessage, setBackupMessage] = useState('')
-  const [storageWarning, setStorageWarning] = useState(false)
   const importRef = useRef(null)
 
-  useEffect(() => {
-    setStorageWarning(!writePlants(plants, scope))
-  }, [plants, scope])
+  // Anything still waiting to be saved is sent before signing out.
+  async function signOutNow() {
+    await finish()
+    auth.signOut()
+  }
+
+  async function deleteAccountNow() {
+    setDeleteError('')
+    const result = await auth.deleteAccount()
+    if (result?.error) setDeleteError(result.error)
+  }
+
+  function importLegacy() {
+    const known = new Set(plants.map((plant) => plant.id))
+    const fresh = legacy.filter((plant) => !known.has(plant.id))
+    setPlants((current) => [...fresh, ...current])
+    clearLegacyPlants()
+    setLegacy([])
+    setBackupMessage(`Added ${fresh.length} ${fresh.length === 1 ? 'plant' : 'plants'} from this browser to your account.`)
+  }
 
   useEffect(() => {
     if (!undo) return undefined
@@ -159,7 +185,7 @@ function Workspace({ auth }) {
               <span className="avatar" aria-hidden="true">{auth.user.name.trim().charAt(0).toUpperCase()}</span>
               <span className="user-name">{auth.user.name}</span>
             </span>
-            <button type="button" className="secondary" onClick={auth.signOut}>Sign out</button>
+            <button type="button" className="secondary" onClick={signOutNow}>Sign out</button>
           </div>
           <button type="button" className="secondary theme-toggle" onClick={auth.toggleTheme}>
             {auth.theme === 'dark' ? <SunIcon size={16} /> : <MoonIcon size={16} />}
@@ -180,7 +206,15 @@ function Workspace({ auth }) {
               <a className="btn btn-light" href="#identify"><CameraIcon size={18} /> Identify from a photo</a>
               <a className="btn btn-ghost" href="#add-plant"><PlusIcon size={18} /> Add a plant</a>
             </div>
-            <p className="hero-account">Signed in as <strong>{auth.user.name}</strong>. These are your plants.</p>
+            <p className="hero-account">
+              Signed in as <strong>{auth.user.name}</strong>.{' '}
+              <span className={`sync-status sync-${status}`} role="status">
+                {SYNC_LABELS[status] ?? detail}
+              </span>
+              {(status === 'offline' || status === 'error') && (
+                <> <button type="button" className="link-light" onClick={retry}>Try again</button></>
+              )}
+            </p>
             <ul className="hero-stats" aria-label="Summary">
               <li><strong>{plants.length}</strong><span>{plants.length === 1 ? 'plant' : 'plants'}</span></li>
               <li><strong>{thirsty.length}</strong><span>to water</span></li>
@@ -190,7 +224,25 @@ function Workspace({ auth }) {
           <PlantArt className="hero-art" />
         </section>
 
-        {storageWarning && <p className="notice" role="status">This browser could not save changes. Your list may not survive a refresh.</p>}
+        {status === 'setup' && (
+          <p className="notice" role="alert">
+            Saving is not set up yet. The person running this app needs to run <code>supabase/schema.sql</code> in the Supabase SQL Editor.
+            Until then, your plants are only kept on this device.
+          </p>
+        )}
+
+        {legacy.length > 0 && !legacyHidden && status !== 'loading' && (
+          <section className="notice legacy-notice" aria-label="Plants found on this device">
+            <p>
+              We found {legacy.length} {legacy.length === 1 ? 'plant' : 'plants'} saved in this browser from before accounts
+              were stored online. Add {legacy.length === 1 ? 'it' : 'them'} to your account?
+            </p>
+            <div className="actions">
+              <button type="button" onClick={importLegacy}>Add {legacy.length === 1 ? 'it' : `${legacy.length} plants`} to my account</button>
+              <button type="button" className="secondary" onClick={() => setLegacyHidden(true)}>Not now</button>
+            </div>
+          </section>
+        )}
 
         <div className="layout">
           <div className="col-main">
@@ -266,7 +318,7 @@ function Workspace({ auth }) {
         <section className="backup no-print" id="backup" aria-labelledby="backup-heading">
           <p className="eyebrow">Your data</p>
           <h2 id="backup-heading">Backup</h2>
-          <p className="hint">Plants live only in this browser. Export a file to keep a copy, or import one to restore it.</p>
+          <p className="hint">Your plants are saved in your account. Export a file to keep your own copy, or import one to add plants from it.</p>
           <div className="actions">
             <button type="button" className="secondary" onClick={exportBackup} disabled={plants.length === 0}>Export plants</button>
             <button type="button" className="secondary" onClick={() => importRef.current?.click()}>Import plants</button>
@@ -278,11 +330,12 @@ function Workspace({ auth }) {
             <div className="account-block">
               <h3>Your account</h3>
               <p className="hint">
-                Signed in as {auth.user.name} ({auth.user.email}). Your plants are saved under this account on this device
-                only, so they will not appear on your other devices. Export a backup to move them.
+                Signed in as {auth.user.name} ({auth.user.email}). Your plants are saved in this account, so they appear
+                on any device where you sign in.
               </p>
+              {deleteError && <p className="error" role="alert">{deleteError}</p>}
               <div className="actions">
-                <button type="button" className="secondary" onClick={auth.signOut}>Sign out</button>
+                <button type="button" className="secondary" onClick={signOutNow}>Sign out</button>
                 {!confirmingDelete && (
                   <button type="button" className="danger" onClick={() => setConfirmingDelete(true)}>Delete account</button>
                 )}
@@ -290,11 +343,11 @@ function Workspace({ auth }) {
               {confirmingDelete && (
                 <div className="forgot-panel" role="alert">
                   <p>
-                    This removes the account and its {plants.length} {plants.length === 1 ? 'plant' : 'plants'} from this
-                    device. It cannot be undone. Export a backup first if you want to keep them.
+                    This permanently deletes the account and its {plants.length} {plants.length === 1 ? 'plant' : 'plants'},
+                    from every device. It cannot be undone. Export a backup first if you want to keep them.
                   </p>
                   <div className="actions">
-                    <button type="button" className="danger" onClick={() => auth.deleteAccount(auth.user.id)}>Yes, delete my account</button>
+                    <button type="button" className="danger" onClick={deleteAccountNow}>Yes, delete my account</button>
                     <button type="button" className="secondary" onClick={() => setConfirmingDelete(false)}>Keep my account</button>
                   </div>
                 </div>
@@ -312,7 +365,7 @@ function Workspace({ auth }) {
       </main>
 
       <footer className="site-footer">
-        <p>Plants are saved in this browser only. Browser storage is not a secure or shared database.</p>
+        <p>Your plants are saved in your online account. Do not store anything sensitive in your notes.</p>
       </footer>
     </>
   )
@@ -322,14 +375,61 @@ const WELCOME_MS = 7000
 
 // The app is only shown to someone who is signed in. Until then, the only thing on screen is the
 // sign-in and register page, so no plants, guide, shop or editing controls are rendered at all.
+const ACCOUNT_HINT_KEY = 'plant-care-notes-has-account'
+
+function hasUsedAccount() {
+  try {
+    return window.localStorage.getItem(ACCOUNT_HINT_KEY) === 'yes'
+  } catch {
+    return false
+  }
+}
+
+function rememberAccount() {
+  try {
+    window.localStorage.setItem(ACCOUNT_HINT_KEY, 'yes')
+  } catch {
+    // Only affects which tab opens first.
+  }
+}
+
 export default function App() {
-  const [user, setUser] = useState(readSession)
+  const [user, setUser] = useState(readCachedPerson)
+  const [recovering, setRecovering] = useState(false)
   const [theme, setTheme] = useState(readTheme)
   const [welcome, setWelcome] = useState('')
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
   }, [theme])
+
+  // Find out who is signed in (a session is kept in this browser), and keep listening for changes
+  // such as signing out in another tab or opening a password-reset link.
+  useEffect(() => {
+    removeOldAccounts()
+    let active = true
+    let heardEvent = false
+    getCurrentPerson().then((person) => {
+      // A sign-in or sign-out event is newer than this answer, so it wins if it already arrived.
+      if (active && !heardEvent) setUser(person)
+    })
+    const stop = watchAuth((event, person) => {
+      if (!active) return
+      heardEvent = true
+      if (event === 'PASSWORD_RECOVERY') setRecovering(true)
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setRecovering(false)
+      } else if (person) {
+        setUser(person)
+        rememberAccount()
+      }
+    })
+    return () => {
+      active = false
+      stop()
+    }
+  }, [])
 
   useEffect(() => {
     if (!welcome) return undefined
@@ -345,31 +445,48 @@ export default function App() {
     })
   }
 
-  function handleAuthenticated(person, { created, moved }) {
+  function handleAuthenticated(person, { created }) {
     setUser(person)
-    const extra = moved > 0 ? ` ${moved} ${moved === 1 ? 'plant was' : 'plants were'} added to your account.` : ''
-    setWelcome(created ? `Welcome, ${person.name}. Your account is ready.${extra}` : `Welcome back, ${person.name}.`)
+    rememberAccount()
+    setWelcome(created ? `Welcome, ${person.name}. Your account is ready.` : `Welcome back, ${person.name}.`)
   }
 
-  function signOut() {
-    signOutUser()
+  async function signOut() {
+    await signOutPerson()
     setUser(null)
     setWelcome('You are signed out.')
   }
 
-  function deleteAccount(id) {
-    deleteUser(id)
-    setUser(null)
-    setWelcome('Your account was deleted from this device.')
+  async function deleteAccount() {
+    const result = await deleteMyAccount()
+    if (result.ok) {
+      setUser(null)
+      setWelcome('Your account was deleted.')
+    }
+    return result
+  }
+
+  function passwordChanged(person) {
+    setRecovering(false)
+    if (person) setUser(person)
+    setWelcome('Your password was changed.')
+  }
+
+  let screen
+  if (recovering) {
+    screen = <SetNewPassword onDone={passwordChanged} theme={theme} onToggleTheme={toggleTheme} />
+  } else if (user) {
+    screen = <Workspace key={user.id} auth={{ user, signOut, deleteAccount, theme, toggleTheme }} />
+  } else {
+    screen = (
+      <AuthScreen onAuthenticated={handleAuthenticated} theme={theme} onToggleTheme={toggleTheme}
+        initialTab={hasUsedAccount() ? 'signin' : 'register'} />
+    )
   }
 
   return (
     <>
-      {user ? (
-        <Workspace key={user.id} auth={{ user, signOut, deleteAccount, theme, toggleTheme }} />
-      ) : (
-        <AuthScreen onAuthenticated={handleAuthenticated} theme={theme} onToggleTheme={toggleTheme} />
-      )}
+      {screen}
       {welcome && <div className="toast welcome-toast" role="status"><span>{welcome}</span></div>}
     </>
   )

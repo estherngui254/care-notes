@@ -1,6 +1,6 @@
 # Plant Care Notes
 
-A small React + Vite app for keeping care notes for your houseplants. Everything is saved in your browser, so it works offline and needs no account.
+A small React + Vite app for keeping care notes for your houseplants. You sign in with an account, and your plants are saved online so they follow you to any device. It keeps a copy on the device, so it also opens offline.
 
 **Live demo:** https://estherngui254.github.io/care-notes/
 
@@ -23,7 +23,7 @@ A small React + Vite app for keeping care notes for your houseplants. Everything
 
 ## Identify from a photo: setup, cost and privacy
 
-Photo identification is the only feature that needs the internet and an API key. Everything else works offline with no account. You can choose between two services.
+Photo identification is the only feature that needs an extra API key. It also needs the internet. You can choose between two services.
 
 **Google Gemini (free tier), the default**
 1. Go to [Google AI Studio](https://aistudio.google.com/apikey), sign in with a Google account and choose **Create API key**. No payment details are needed.
@@ -43,18 +43,30 @@ Create a key in the [Anthropic Console](https://console.anthropic.com/) and set 
 
 ## Accounts
 
+Accounts and saved plants are handled by [Supabase](https://supabase.com), so they work on any device.
+
 Everyone has to sign in first. When the app opens, the only thing shown is a page to **sign in** or **create an account** (a name, an email address and a password of at least 8 characters). The plants, shop, guide, photo identification and every editing control are not shown at all until you are signed in. There is no guest mode.
 
-**These accounts live in this browser only.** The app has no server, so:
-- Each account gets its own plants, separate from other accounts on the same browser. If plants were saved here before accounts existed, you can add them to your account when you register.
-- The password is never stored. Only a salted hash of it is (PBKDF2 with SHA-256).
-- Five wrong passwords in a row pause sign-in for 30 seconds.
-- Accounts and plants **do not sync between devices**. Use **Export plants** to move them.
-- There is **no password reset by email**. Someone who forgot their password can remove the account from the sign-in screen and register again, which deletes the plants in it. Export a backup now and then.
-- **The sign-in page is a gate in the app, not a lock on the data.** It stops anyone using the app without signing in and keeps honest people's plants apart. But the data is in this browser's storage and the app's code is public, so anyone who can open developer tools or the browser's files can read or change it. Do not reuse a password from another site, and do not store anything sensitive.
-- **Keep me signed in on this device** keeps you signed in after closing the browser. Turn it off on a shared computer.
+**For people using the app**
+- After registering, Supabase emails a link to confirm your address. Open it, then sign in.
+- Your plants are saved in your account as you change them (the banner says **Saved to your account**), and they appear on every device where you sign in.
+- **Forgot your password?** on the sign-in tab emails a reset link. Opening it shows a page to choose a new password.
+- The app keeps a copy on the device, so it opens offline. Changes made offline are saved when you are back online (use **Try again** to do it sooner). If the same plant was changed on two devices, the last save wins.
+- **Sign out** saves anything waiting, then removes the copy from that device. **Delete account** under Backup removes the account and all its plants for good.
+- Plants saved in this browser before accounts moved online are offered to you once, in a banner after you sign in.
+- Your password is handled by Supabase. This app never sees or stores it.
 
-Real accounts that sync across devices would need a server or a service such as Supabase or Firebase. The code in `src/accounts.js` is the only place that would need to change.
+**Setting up Supabase (once, for whoever runs the app)**
+1. Create a project at supabase.com. The project address and publishable key go in `src/supabaseConfig.js` (or in `.env.local`, see `.env.example`).
+2. In the dashboard open **SQL Editor**, paste all of `supabase/schema.sql` and run it. It creates the `plants` table, turns on Row Level Security so everyone only reaches their own plants, and adds the `delete_my_account` function.
+3. Under **Authentication → URL Configuration** set the **Site URL** to the published address, and add it and `http://localhost:5173/` to **Redirect URLs**, so confirmation and reset links come back to the app.
+4. Optional: Supabase's built-in email sending is meant for trying things out and is limited. For a real launch, add your own email (SMTP) service under **Authentication**.
+
+**Security notes**
+- The publishable key (`sb_publishable_...`) is meant to be public. What protects the data is Row Level Security in `supabase/schema.sql`. Never put the secret key, the `service_role` key or the database password in this app.
+- The person who runs the Supabase project can see the stored data in the dashboard. Do not store anything sensitive in plant notes.
+- Photos are stored inside each plant, so they count towards the database size. The Supabase Free plan has 500 MB of database and pauses a project after a week without activity (restore it from the dashboard).
+- Until step 2 is done, the app still works on a device but says saving is not set up.
 
 ## Requirements
 
@@ -87,7 +99,12 @@ Open the local address shown in the terminal. Keep the terminal running.
 - src/PlantCard.jsx, src/PlantControls.jsx: list item and search/filter/sort controls
 - src/MultiSelect.jsx: the checkbox dropdown used for care recommendations
 - src/plantUtils.js: watering status, sorting and filtering
-- src/accounts.js, src/AuthScreen.jsx: registering, signing in and out, password hashing, sessions and the sign-in page
+- src/auth.js, src/AuthScreen.jsx, src/validation.js: registering, signing in and out, password reset and the sign-in pages (Supabase Auth)
+- src/supabaseClient.js, src/supabaseConfig.js: the connection to Supabase (project address and publishable key)
+- src/cloudPlants.js, src/useCloudPlants.js: saving and loading plants in the account, the offline copy and merging offline changes
+- src/legacy.js: finds plants saved in the browser before accounts moved online, so they can be added to the account
+- supabase/schema.sql: the database table, privacy rules and delete-account function to run in Supabase
+- src/test/fakeSupabase.js: an in-memory stand-in for Supabase, so the tests never touch the real project
 - src/storage.js: reading, writing, migrating and backing up saved data
 - src/photo.js: photo validation and compression
 - src/PlantScanner.jsx, src/identify.js, src/scanToPlant.js: the photo identification screen, the Claude API request and result handling, and turning a result into a saved plant
@@ -100,11 +117,11 @@ Open the local address shown in the terminal. Keep the terminal running.
 
 ## Data and privacy
 
-Plants are stored in this browser's localStorage, apart from photos you send for identification (see above). They are not encrypted, shared or synced, and clearing site data deletes them. Use **Export plants** to keep a backup. Do not enter sensitive personal information.
+Plants are stored in your Supabase account (see "Accounts" above), with a copy on the device for offline use. Photos you send for identification go to the service you chose (see above). Use **Export plants** to keep your own backup. Do not enter sensitive personal information.
 
 ## Not included
 
-Accounts that sync across devices, password reset by email, and a shared backend that would let people use photo identification without their own API key. Each would need a server.
+A shared backend that would let people use photo identification without their own API key. It would need a server to keep that key secret. Real-time updates between open devices, and sign-in with Google or other providers, are not built either.
 
 ## License
 
