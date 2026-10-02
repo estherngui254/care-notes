@@ -18,6 +18,7 @@ A small React + Vite app for keeping care notes for your houseplants. Everything
 - Export and import a JSON backup.
 - Light and dark mode, and a print view for a care sheet.
 - Installable as an app and works offline (PWA).
+- Register and sign in: select **Create account** or **Sign in** in the top bar (or the link in the banner). Accounts keep each person's plants separate on a shared device, and you can keep using the app as a guest without one. See "Accounts" below for what they do and do not do.
 - A scannable QR code (in the **Share** section) that opens the live site, with a copy-link button and a download of the code as an image. The code always points to the published address in `src/site.js`, even when the app is open on another address, and is always dark on white so every phone can scan it.
 
 ## Identify from a photo: setup, cost and privacy
@@ -39,6 +40,21 @@ Create a key in the [Anthropic Console](https://console.anthropic.com/) and set 
 - **What is sent:** your photos, only when you select Identify. They are resized to 1024 pixels first.
 - **Accuracy:** results are an AI estimate from photos and can be wrong. The app shows its confidence and suggests photos that would help.
 - **Model names:** the Gemini model is set by `GEMINI_MODEL` in `src/identify.js`. If Google retires it, the app says the model is not available, and you can change that line.
+
+## Accounts
+
+You can register with a name, an email address and a password (at least 8 characters), then sign in and out. You can also carry on as a guest.
+
+**These accounts live in this browser only.** The app has no server, so:
+- Each account gets its own plants, separate from the guest's and from other accounts on the same browser. If guest plants already exist, you can add them to a new account when you register.
+- The password is never stored. Only a salted hash of it is (PBKDF2 with SHA-256).
+- Five wrong passwords in a row pause sign-in for 30 seconds.
+- Accounts and plants **do not sync between devices**. Use **Export plants** to move them.
+- There is **no password reset by email**. Someone who forgot their password can remove the account from the sign-in screen and register again, which deletes the plants in it. Export a backup now and then.
+- This keeps honest people's plants apart. It is not strong security: anyone who can open this browser's developer tools can read or change the stored data. Do not reuse a password from another site, and do not store anything sensitive.
+- **Keep me signed in on this device** keeps you signed in after closing the browser. Turn it off on a shared computer.
+
+Real accounts that sync across devices would need a server or a service such as Supabase or Firebase. The code in `src/accounts.js` is the only place that would need to change.
 
 ## Requirements
 
@@ -71,6 +87,7 @@ Open the local address shown in the terminal. Keep the terminal running.
 - src/PlantCard.jsx, src/PlantControls.jsx: list item and search/filter/sort controls
 - src/MultiSelect.jsx: the checkbox dropdown used for care recommendations
 - src/plantUtils.js: watering status, sorting and filtering
+- src/accounts.js, src/AuthDialog.jsx: registering, signing in and out, password hashing, sessions and the sign-in dialog
 - src/storage.js: reading, writing, migrating and backing up saved data
 - src/photo.js: photo validation and compression
 - src/PlantScanner.jsx, src/identify.js, src/scanToPlant.js: the photo identification screen, the Claude API request and result handling, and turning a result into a saved plant
@@ -87,7 +104,7 @@ Plants are stored in this browser's localStorage, apart from photos you send for
 
 ## Not included
 
-Accounts and cross-device sync, and a shared backend that would let people use photo identification without their own API key. Each would need a server.
+Accounts that sync across devices, password reset by email, and a shared backend that would let people use photo identification without their own API key. Each would need a server.
 
 ## License
 

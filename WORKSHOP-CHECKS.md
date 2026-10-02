@@ -79,6 +79,18 @@ The tests use a fake service, so checks 29 to 31 need a real API key. A free Goo
 | 39 | Scan the QR code | Open the **Share** section and point a phone camera at the code. Try it in light and dark mode. | The phone offers to open https://estherngui254.github.io/care-notes/ and the site loads. The code is dark on white in both themes. | QrShare.test.jsx (decodes the code back to the address) | **manual** (real phone) |
 | 40 | Copy and download | Select **Copy link**, paste it somewhere, then select **Download QR code**. | The pasted text is the site address. A `plant-care-notes-qr.png` image is saved and scans the same way. | QrShare.test.jsx | **manual** (clipboard and download) |
 
+## Register and sign in
+
+| # | Check | Steps | Expected | Automated test | Result |
+|---|-------|-------|----------|----------------|--------|
+| 41 | Where to register | Open the site as a new visitor. | **Sign in** and **Create account** are in the top bar, and the banner says "New here? Create a free account". The app also works without an account. | App.accounts.test.jsx | |
+| 42 | Register | Select **Create account**. Submit it empty, then with a bad email, a short password and a password typed differently the second time. Then fill it in correctly. | Each problem has its own message and focus stays in the dialog. A correct form closes the dialog, signs you in, shows your name and a welcome message. A repeat email is refused. | App.accounts.test.jsx, accounts.test.js | |
+| 43 | Sign in and out | Sign out, then sign in with the right password, then a wrong one. | The right one signs in. The wrong one says only that the email and password do not match. After five wrong tries sign-in pauses for 30 seconds. | App.accounts.test.jsx, accounts.test.js | |
+| 44 | Separate plants | As one account add a plant, sign out, and register a second account. Sign back in to the first. | Each account sees only its own plants. Plants made as a guest are not shown to accounts, unless you chose to add them when registering. | App.accounts.test.jsx | |
+| 45 | Stay signed in | Sign in with **Keep me signed in** on, close and reopen the browser. Repeat with it off. | On: you are still signed in. Off: you are signed out when the tab closes. | App.accounts.test.jsx | **manual** (real browser close) |
+| 46 | Forgot password and delete | On the sign-in tab choose **Forgot your password?** and remove an account. Also use **Delete account** under Backup. | A warning explains the plants are deleted and the buttons stay disabled until you confirm. The account can then be created again. | App.accounts.test.jsx | |
+| 47 | Look and keyboard | Open the dialog in light and dark mode and on a phone. Use only the keyboard: Tab around, press Escape. | The dialog is readable and fits the screen. Focus stays inside it, Escape closes it, and focus returns to the button that opened it. | none | **manual** |
+
 ## Main workflow run
 
 Add a plant, see it in the list, edit it, refresh to confirm it was saved, then delete it. All steps should work using only the visible controls.

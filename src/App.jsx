@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { buildBackup, parseBackup, readPlants, readTheme, writePlants, writeTheme } from './storage.js'
+import { deleteUser, readSession, signOutUser } from './accounts.js'
+import AuthDialog from './AuthDialog.jsx'
 import { filterPlants, sortPlants, todayString, wateringStatus } from './plantUtils.js'
 import { CameraIcon, DropIcon, LeafIcon, MoonIcon, PlantArt, PlusIcon, PrintIcon, SproutIcon, SunIcon } from './icons.jsx'
 import PlantForm from './PlantForm.jsx'
@@ -12,8 +14,12 @@ import PlantScanner from './PlantScanner.jsx'
 
 const UNDO_MS = 8000
 
-export default function App() {
-  const [plants, setPlants] = useState(readPlants)
+// Everything the signed-in person (or the guest) sees. It is remounted when the person changes,
+// so one account's plants are never shown to another.
+function Workspace({ auth }) {
+  const scope = auth.user?.id
+  const [plants, setPlants] = useState(() => readPlants(scope))
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formKey, setFormKey] = useState(0)
   const [query, setQuery] = useState('')
@@ -26,8 +32,8 @@ export default function App() {
   const importRef = useRef(null)
 
   useEffect(() => {
-    setStorageWarning(!writePlants(plants))
-  }, [plants])
+    setStorageWarning(!writePlants(plants, scope))
+  }, [plants, scope])
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -161,6 +167,22 @@ export default function App() {
             <a href="#share">Share</a>
             <a href="#backup">Backup</a>
           </nav>
+          <div className="account-bar">
+            {auth.user ? (
+              <>
+                <span className="user-chip" title={auth.user.email}>
+                  <span className="avatar" aria-hidden="true">{auth.user.name.trim().charAt(0).toUpperCase()}</span>
+                  <span className="user-name">{auth.user.name}</span>
+                </span>
+                <button type="button" className="secondary" onClick={auth.signOut}>Sign out</button>
+              </>
+            ) : (
+              <>
+                <button type="button" className="secondary" onClick={() => auth.open('signin')}>Sign in</button>
+                <button type="button" className="account-cta" onClick={() => auth.open('register')}>Create account</button>
+              </>
+            )}
+          </div>
           <button type="button" className="secondary theme-toggle" onClick={toggleTheme}>
             {theme === 'dark' ? <SunIcon size={16} /> : <MoonIcon size={16} />}
             <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
@@ -180,6 +202,15 @@ export default function App() {
               <a className="btn btn-light" href="#identify"><CameraIcon size={18} /> Identify from a photo</a>
               <a className="btn btn-ghost" href="#add-plant"><PlusIcon size={18} /> Add a plant</a>
             </div>
+            {auth.user ? (
+              <p className="hero-account">Signed in as <strong>{auth.user.name}</strong>. These are your plants.</p>
+            ) : (
+              <p className="hero-account no-print">
+                New here?{' '}
+                <button type="button" className="link-light" onClick={() => auth.open('register')}>Create a free account</button>
+                {' '}to keep your plants in your own space, or carry on as a guest.
+              </p>
+            )}
             <ul className="hero-stats" aria-label="Summary">
               <li><strong>{plants.length}</strong><span>{plants.length === 1 ? 'plant' : 'plants'}</span></li>
               <li><strong>{thirsty.length}</strong><span>to water</span></li>
@@ -272,6 +303,34 @@ export default function App() {
             <input ref={importRef} type="file" accept="application/json,.json" hidden aria-label="Import backup file" onChange={importBackup} />
           </div>
           {backupMessage && <p className="hint" role="status">{backupMessage}</p>}
+
+          {auth.user && (
+            <div className="account-block">
+              <h3>Your account</h3>
+              <p className="hint">
+                Signed in as {auth.user.name} ({auth.user.email}). Your plants are saved under this account on this device
+                only, so they will not appear on your other devices. Export a backup to move them.
+              </p>
+              <div className="actions">
+                <button type="button" className="secondary" onClick={auth.signOut}>Sign out</button>
+                {!confirmingDelete && (
+                  <button type="button" className="danger" onClick={() => setConfirmingDelete(true)}>Delete account</button>
+                )}
+              </div>
+              {confirmingDelete && (
+                <div className="forgot-panel" role="alert">
+                  <p>
+                    This removes the account and its {plants.length} {plants.length === 1 ? 'plant' : 'plants'} from this
+                    device. It cannot be undone. Export a backup first if you want to keep them.
+                  </p>
+                  <div className="actions">
+                    <button type="button" className="danger" onClick={() => auth.deleteAccount(auth.user.id)}>Yes, delete my account</button>
+                    <button type="button" className="secondary" onClick={() => setConfirmingDelete(false)}>Keep my account</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {undo && (
@@ -285,6 +344,53 @@ export default function App() {
       <footer className="site-footer">
         <p>Plants are saved in this browser only. Browser storage is not a secure or shared database.</p>
       </footer>
+    </>
+  )
+}
+
+const WELCOME_MS = 7000
+
+export default function App() {
+  const [user, setUser] = useState(readSession)
+  const [dialogTab, setDialogTab] = useState(null)
+  const [welcome, setWelcome] = useState('')
+
+  useEffect(() => {
+    if (!welcome) return undefined
+    const timer = setTimeout(() => setWelcome(''), WELCOME_MS)
+    return () => clearTimeout(timer)
+  }, [welcome])
+
+  function handleAuthenticated(person, { created, moved }) {
+    setUser(person)
+    setDialogTab(null)
+    const extra = moved > 0 ? ` ${moved} ${moved === 1 ? 'plant was' : 'plants were'} added to your account.` : ''
+    setWelcome(created ? `Welcome, ${person.name}. Your account is ready.${extra}` : `Welcome back, ${person.name}.`)
+  }
+
+  function signOut() {
+    signOutUser()
+    setUser(null)
+    setWelcome('You are signed out.')
+  }
+
+  function deleteAccount(id) {
+    deleteUser(id)
+    setUser(null)
+    setWelcome('Your account was deleted from this device.')
+  }
+
+  const auth = { user, open: setDialogTab, signOut, deleteAccount }
+
+  return (
+    <>
+      <div inert={dialogTab ? true : undefined} aria-hidden={dialogTab ? true : undefined}>
+        <Workspace key={user?.id ?? 'guest'} auth={auth} />
+      </div>
+      {dialogTab && (
+        <AuthDialog key={dialogTab} initialTab={dialogTab} onClose={() => setDialogTab(null)} onAuthenticated={handleAuthenticated} />
+      )}
+      {welcome && <div className="toast welcome-toast" role="status"><span>{welcome}</span></div>}
     </>
   )
 }

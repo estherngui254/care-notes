@@ -54,9 +54,13 @@ export function normalizePlants(raw) {
     }))
 }
 
-export function readPlants() {
+// Plants are kept per account. Without a scope they belong to the guest, under the original
+// key, so everything saved before accounts existed is still found.
+const plantsKey = (scope) => (scope ? `${STORAGE_KEY}:${scope}` : STORAGE_KEY)
+
+export function readPlants(scope) {
   try {
-    const saved = window.localStorage.getItem(STORAGE_KEY)
+    const saved = window.localStorage.getItem(plantsKey(scope))
     if (!saved) return []
     return normalizePlants(JSON.parse(saved))
   } catch {
@@ -64,13 +68,30 @@ export function readPlants() {
   }
 }
 
-export function writePlants(plants) {
+export function writePlants(plants, scope) {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(plants))
+    window.localStorage.setItem(plantsKey(scope), JSON.stringify(plants))
     return true
   } catch {
     return false
   }
+}
+
+export function removePlants(scope) {
+  try {
+    window.localStorage.removeItem(plantsKey(scope))
+  } catch {
+    // Nothing more can be done if storage is blocked.
+  }
+}
+
+// Moves the guest's plants into an account. Returns how many plants were moved.
+export function moveGuestPlantsTo(scope) {
+  const plants = readPlants()
+  if (plants.length === 0) return 0
+  if (!writePlants([...plants, ...readPlants(scope)], scope)) return 0
+  removePlants()
+  return plants.length
 }
 
 export function readTheme() {
