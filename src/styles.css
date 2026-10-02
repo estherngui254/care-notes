@@ -391,15 +391,20 @@ button.link:hover { transform: none; box-shadow: none; }
 .shop { margin-top: 44px; }
 .shop h2 { margin-bottom: 6px; }
 .shop-filters { margin-top: 18px; }
-.shop-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
-.shop-card { display: grid; gap: 6px; align-content: start; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 16px; }
-.shop-card h3 { margin: 0; }
-.shop-card .kind { justify-self: start; }
-.shop-detail { margin: 0; color: var(--muted); font-size: .84rem; line-height: 1.5; }
-.shop-price { display: flex; align-items: baseline; gap: 8px; margin: 4px 0 6px; }
-.shop-ksh { font-family: var(--font-display); font-weight: 600; font-size: 1.2rem; color: var(--heading); }
+.shop-table-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); overflow-x: auto; }
+.shop-table { width: 100%; border-collapse: collapse; text-align: left; }
+.shop-table th, .shop-table td { padding: 11px 16px; vertical-align: middle; border-bottom: 1px solid var(--line); }
+.shop-table thead th { background: var(--surface-2); font-size: .76rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); white-space: nowrap; }
+.shop-table thead th.num { width: 1%; }
+.shop-table tbody tr:last-child th, .shop-table tbody tr:last-child td { border-bottom: 0; }
+.shop-table tbody tr:hover { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
+.shop-table .num { text-align: right; white-space: nowrap; }
+.shop-item { font-weight: 600; color: var(--heading); }
+.shop-item .kind { margin-left: 8px; }
+.shop-detail { margin: 0; color: var(--muted); font-size: .86rem; line-height: 1.5; }
+.shop-ksh { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; color: var(--heading); }
 .shop-usd { color: var(--muted); font-size: .86rem; }
-.shop-card button { justify-self: start; }
+.shop-action button { white-space: nowrap; }
 .shop-empty { margin-top: 10px; text-align: center; color: var(--muted); background: var(--surface); border: 1px dashed var(--line); border-radius: 18px; padding: 26px 16px; }
 .shop-empty button { margin-left: 8px; }
 .shop-order { background: var(--ok-bg); color: var(--ok-text); border-radius: 14px; padding: 10px 14px; margin: 0 0 14px; }
@@ -458,6 +463,20 @@ button.link:hover { transform: none; box-shadow: none; }
   .record-actions button { flex: 1; }
   .issue { flex-direction: column; }
   .section-heading { flex-wrap: wrap; }
+}
+
+/* Shop table on phones: each row becomes one stacked block */
+@media (max-width: 560px) {
+  .shop-table thead { display: none; }
+  .shop-table, .shop-table tbody, .shop-table tr, .shop-table th, .shop-table td { display: block; width: auto; }
+  .shop-table tr { padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .shop-table tbody tr:last-child { border-bottom: 0; }
+  .shop-table th, .shop-table td { padding: 0; border: none; }
+  .shop-table .num { text-align: left; }
+  .shop-table .shop-item { margin-bottom: 2px; }
+  .shop-table .shop-detail { margin-bottom: 6px; }
+  .shop-table .shop-ksh, .shop-table .shop-usd { display: inline; margin-right: 8px; }
+  .shop-table .shop-action { margin-top: 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

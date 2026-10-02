@@ -69,7 +69,7 @@ The tests use a fake service, so checks 29 to 31 need a real API key. A free Goo
 |---|-------|-------|----------|----------------|--------|
 | 35 | Browse the shop | Open **Shop**. Search by name or size, then filter by category and clear. | Every item shows its name and its price in KSh and dollars; the count updates; no matches shows a message and a clear button. | PlantShop.test.jsx | |
 | 36 | Basket and order | Add two items, change a quantity with +, remove one, then select **Place order**. | The basket shows per-item and total prices in both currencies. Placing an order confirms the amount in KSh and dollars and empties the basket. | PlantShop.test.jsx | |
-| 37 | Shop on a phone | Resize the window to phone width. | The item cards stack into one column and stay readable. | none | **manual** |
+| 37 | Shop on a phone | Resize the window to phone width. | The table becomes a stacked list — each item shows its name, category, details, both prices and its button — and stays readable. | none | **manual** |
 | 38 | M-PESA payment | Add an item and check the basket, then place the order. | The intro and the basket show **M-PESA** with a Buy Goods till number; the confirmation repeats the till number to pay to and still offers cash on collection or delivery. | PlantShop.test.jsx | |
 
 ## Main workflow run

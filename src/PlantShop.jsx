@@ -146,21 +146,35 @@ export default function PlantShop() {
           <button type="button" className="link" onClick={clearFilters}>Clear filters</button>
         </div>
       ) : (
-        <ul className="shop-grid" aria-label="Items for sale">
-          {items.map((item) => (
-            <li key={item.id} className="shop-card">
-              <span className="kind">{categoryLabel(item.category)}</span>
-              <h3>{item.name}</h3>
-              <p className="shop-detail">{item.detail}</p>
-              <p className="shop-price">
-                <span className="shop-ksh">{formatKsh(item.priceKsh)}</span>
-                <span className="shop-usd">{formatUsd(usdFromKsh(item.priceKsh))}</span>
-              </p>
-              <button type="button" className="secondary" onClick={() => addItem(item.id)}
-                aria-label={`Add ${item.name} to basket`}>Add to basket</button>
-            </li>
-          ))}
-        </ul>
+        <div className="shop-table-wrap">
+          <table className="shop-table" aria-label="Items for sale">
+            <thead>
+              <tr>
+                <th scope="col">Item</th>
+                <th scope="col">Details</th>
+                <th scope="col" className="num">KSh</th>
+                <th scope="col" className="num">USD</th>
+                <th scope="col" className="num"><span className="sr-only">Add to basket</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.id}>
+                  <th scope="row" className="shop-item">
+                    {item.name} <span className="kind">{categoryLabel(item.category)}</span>
+                  </th>
+                  <td className="shop-detail">{item.detail}</td>
+                  <td className="num shop-ksh">{formatKsh(item.priceKsh)}</td>
+                  <td className="num shop-usd">{formatUsd(usdFromKsh(item.priceKsh))}</td>
+                  <td className="num shop-action">
+                    <button type="button" className="secondary" onClick={() => addItem(item.id)}
+                      aria-label={`Add ${item.name} to basket`}>Add to basket</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   )
