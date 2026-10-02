@@ -421,6 +421,19 @@ button.link:hover { transform: none; box-shadow: none; }
 .shop-empty { margin-top: 10px; text-align: center; color: var(--muted); background: var(--surface); border: 1px dashed var(--line); border-radius: 18px; padding: 26px 16px; }
 .shop-empty button { margin-left: 8px; }
 .shop-order { background: var(--ok-bg); color: var(--ok-text); border-radius: 14px; padding: 10px 14px; margin: 0 0 14px; }
+
+/* Share / QR code. The code itself is always dark on white so every phone can scan it. */
+.share { margin-top: 40px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 28px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow); }
+.share h2 { margin-bottom: 8px; }
+.qr-code { width: 200px; height: 200px; background: #fff; border-radius: 18px; padding: 8px; box-shadow: 0 0 0 1px var(--line), var(--shadow); line-height: 0; }
+.qr-code svg { display: block; width: 100%; height: 100%; }
+.qr-placeholder { display: grid; place-items: center; text-align: center; padding: 16px; font-size: .85rem; line-height: 1.4; color: #4a5a50; }
+.share-url { margin: 0 0 4px; overflow-wrap: anywhere; font-weight: 600; }
+.share .actions { margin-top: 12px; }
+@media (max-width: 620px) {
+  .share { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; padding: 22px; gap: 20px; }
+  .share .actions, .share h2 { justify-content: center; }
+}
 .basket { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 16px 18px; margin-bottom: 14px; }
 .basket-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .basket-head h3 { margin: 0; display: flex; align-items: center; gap: 8px; }

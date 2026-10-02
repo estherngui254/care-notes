@@ -7,6 +7,7 @@ import PlantCard from './PlantCard.jsx'
 import PlantControls from './PlantControls.jsx'
 import PestGuide from './PestGuide.jsx'
 import PlantShop from './PlantShop.jsx'
+import QrShare from './QrShare.jsx'
 import PlantScanner from './PlantScanner.jsx'
 
 const UNDO_MS = 8000
@@ -157,6 +158,7 @@ export default function App() {
             <a href="#my-plants">My plants</a>
             <a href="#guide">Guide</a>
             <a href="#shop">Shop</a>
+            <a href="#share">Share</a>
             <a href="#backup">Backup</a>
           </nav>
           <button type="button" className="secondary theme-toggle" onClick={toggleTheme}>
@@ -257,6 +259,8 @@ export default function App() {
         <PestGuide />
 
         <PlantShop />
+
+        <QrShare />
 
         <section className="backup no-print" id="backup" aria-labelledby="backup-heading">
           <p className="eyebrow">Your data</p>

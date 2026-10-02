@@ -18,6 +18,7 @@ A small React + Vite app for keeping care notes for your houseplants. Everything
 - Export and import a JSON backup.
 - Light and dark mode, and a print view for a care sheet.
 - Installable as an app and works offline (PWA).
+- A scannable QR code (in the **Share** section) that opens the live site, with a copy-link button and a download of the code as an image. The code always points to the published address in `src/site.js`, even when the app is open on another address, and is always dark on white so every phone can scan it.
 
 ## Identify from a photo: setup, cost and privacy
 

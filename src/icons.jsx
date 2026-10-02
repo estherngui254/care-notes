@@ -85,6 +85,15 @@ export const BagIcon = (props) => (
   </Icon>
 )
 
+export const QrIcon = (props) => (
+  <Icon {...props}>
+    <rect x="3.5" y="3.5" width="7" height="7" rx="1" />
+    <rect x="13.5" y="3.5" width="7" height="7" rx="1" />
+    <rect x="3.5" y="13.5" width="7" height="7" rx="1" />
+    <path d="M14 14h2.5v2.5H14zM18 18h2.5M18 14v1.5M14 18.5V20.5" />
+  </Icon>
+)
+
 // A larger decorative plant used in the hero and empty states.
 export function PlantArt({ className = '' }) {
   return (

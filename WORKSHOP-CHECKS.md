@@ -72,6 +72,13 @@ The tests use a fake service, so checks 29 to 31 need a real API key. A free Goo
 | 37 | Shop on a phone | Resize the window to phone width. | Each open category table becomes a stacked list — every item shows its name, category, details, both prices and its button — and stays readable. | none | **manual** |
 | 38 | M-PESA payment | Add an item and check the basket, then place the order. | The intro and the basket show **M-PESA** with a Buy Goods till number; the confirmation repeats the till number to pay to and still offers cash on collection or delivery. | PlantShop.test.jsx | |
 
+## Share with a QR code
+
+| # | Check | Steps | Expected | Automated test | Result |
+|---|-------|-------|----------|----------------|--------|
+| 39 | Scan the QR code | Open the **Share** section and point a phone camera at the code. Try it in light and dark mode. | The phone offers to open https://estherngui254.github.io/care-notes/ and the site loads. The code is dark on white in both themes. | QrShare.test.jsx (decodes the code back to the address) | **manual** (real phone) |
+| 40 | Copy and download | Select **Copy link**, paste it somewhere, then select **Download QR code**. | The pasted text is the site address. A `plant-care-notes-qr.png` image is saved and scans the same way. | QrShare.test.jsx | **manual** (clipboard and download) |
+
 ## Main workflow run
 
 Add a plant, see it in the list, edit it, refresh to confirm it was saved, then delete it. All steps should work using only the visible controls.
