@@ -71,6 +71,8 @@ The slices above were built as planned. These additions came afterwards and go b
 
 - Registering and signing in with real accounts on Supabase (email and password, email confirmation, password reset by email), with the whole app hidden behind a sign-in page, so nothing can be seen or edited until someone signs in. Plants are saved in a Supabase table protected by Row Level Security, so they follow the person to any device. A copy is kept on the device for offline use, with changes made offline merged when the connection returns. The brief listed accounts and a backend as non-goals. `supabase/schema.sql` holds the database setup, and the README explains how to run it. An earlier version of this step stored accounts only in the browser. That was replaced by Supabase, and plants saved that way are offered for import after signing in.
 
+- Checkout and order tracking for the plant shop. A customer chooses delivery or collection, pays by M-PESA (to the shop's till) or cash, and gets a tracking code. Orders are stored in Supabase, can only be read by their owner and only changed through two database functions (place and cancel), and the shop moves them through the stages from the Supabase dashboard. Each stage is recorded in a history and shown on a progress tracker, with the rider and arrival time while the order is on its way. See `supabase/orders.sql` and `docs/order-management.md`. Nothing is paid inside the app, and there are no emails or SMS yet.
+
 Still out of scope because they need a server to keep a secret: a hosted service for photo identification that would not need each person's own API key.
 
 ## Not in scope (from the brief)

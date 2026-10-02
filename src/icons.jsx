@@ -85,6 +85,26 @@ export const BagIcon = (props) => (
   </Icon>
 )
 
+export const TruckIcon = (props) => (
+  <Icon {...props}>
+    <path d="M3 6.5h11v9H3zM14 9.5h4l3 3v3h-7z" />
+    <circle cx="7.5" cy="17.5" r="1.8" />
+    <circle cx="17" cy="17.5" r="1.8" />
+  </Icon>
+)
+
+export const CheckIcon = (props) => (
+  <Icon {...props}>
+    <path d="m5 12.5 4.2 4.2L19 7" />
+  </Icon>
+)
+
+export const PhoneIcon = (props) => (
+  <Icon {...props}>
+    <path d="M6.5 4h3l1.6 4-2 1.3a10 10 0 0 0 5.6 5.6l1.3-2 4 1.6v3a2 2 0 0 1-2 2A14 14 0 0 1 4.5 6a2 2 0 0 1 2-2Z" />
+  </Icon>
+)
+
 export const QrIcon = (props) => (
   <Icon {...props}>
     <rect x="3.5" y="3.5" width="7" height="7" rx="1" />

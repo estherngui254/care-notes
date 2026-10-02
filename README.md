@@ -17,6 +17,7 @@ A small React + Vite app for keeping care notes for your houseplants. You sign i
 - Undo after deleting a plant.
 - Export and import a JSON backup.
 - Light and dark mode, and a print view for a care sheet.
+- Plant shop with checkout and order tracking: browse plants, plant media and pots in KSh and USD, fill a basket and check out for delivery or collection, paying by M-PESA or cash. Follow each order under **My orders** from placed to delivered, with the rider's name, a call button and the estimated arrival while it is on its way. Customers can cancel until the order is packed.
 - Installable as an app and works offline (PWA).
 - Sign in first: the app opens on a sign-in and register page, and nothing else is shown or editable until you are signed in. Accounts keep each person's plants separate on a shared device. See "Accounts" below for what they do and do not do.
 - A scannable QR code (in the **Share** section) that opens the live site, with a copy-link button and a download of the code as an image. The code always points to the published address in `src/site.js`, even when the app is open on another address, and is always dark on white so every phone can scan it.
@@ -68,6 +69,22 @@ Everyone has to sign in first. When the app opens, the only thing shown is a pag
 - Photos are stored inside each plant, so they count towards the database size. The Supabase Free plan has 500 MB of database and pauses a project after a week without activity (restore it from the dashboard).
 - Until step 2 is done, the app still works on a device but says saving is not set up.
 
+## Shop, checkout and order tracking
+
+**For customers:** add items to the basket and choose **Checkout**. Pick delivery (choose your area, which sets the delivery fee) or collection, enter a Kenyan mobile number, and choose M-PESA or cash. Nothing is charged by the app: for M-PESA you pay to the shop's till and can enter the confirmation code. After **Place order** you get a tracking code, and the order appears under **My orders** with a progress tracker (Order placed, Confirmed, Packed, Out for delivery, Delivered, or the collection version). While an order is on its way the page checks for updates every 30 seconds, and a banner at the top says it is out for delivery.
+
+**For the shop:** orders arrive in your Supabase project. You move each one along, and add the rider and estimated arrival, from the Supabase dashboard. There is no staff screen in the app. The step-by-step guide, with ready-to-copy SQL, is in [docs/order-management.md](docs/order-management.md).
+
+**Setting it up (once):**
+1. Run `supabase/orders.sql` in the Supabase SQL Editor, after `supabase/schema.sql`. It creates the orders tables, the privacy rules and the `place_order` and `cancel_my_order` functions.
+2. In `src/shopItems.js` replace the sample M-PESA till number, delivery areas and fees, and the collection address and hours.
+
+**Good to know**
+- A customer can read only their own orders. They cannot edit an order, its status or its price. They can only place an order and cancel one that is not yet packed.
+- Prices and the delivery fee come from the customer's browser. The database checks they are sensible numbers but does not know your real prices, so check the total and the M-PESA payment before confirming an order (the guide explains how).
+- A customer can have at most 5 orders waiting to be confirmed.
+- Orders hold names, phone numbers and addresses. Limit who can open your Supabase dashboard.
+
 ## Requirements
 
 - Node.js 20.19+ or 22.12+
@@ -109,7 +126,13 @@ Open the local address shown in the terminal. Keep the terminal running.
 - src/photo.js: photo validation and compression
 - src/PlantScanner.jsx, src/identify.js, src/scanToPlant.js: the photo identification screen, the Claude API request and result handling, and turning a result into a saved plant
 - src/IssuePanel.jsx, src/ManagementPlan.jsx, src/PestGuide.jsx, src/pestsAndDiseases.js: problem reports, management plans, the guide, and the symptom matching data
-- src/PlantShop.jsx, src/shopItems.js: the plant shop, its catalogue, KSh/USD prices and the M-PESA payment till
+- src/PlantShop.jsx, src/shopItems.js: the plant shop, its catalogue, KSh/USD prices, delivery areas and the M-PESA payment till
+- src/CheckoutForm.jsx, src/checkout.js: the checkout form, phone and M-PESA code checks, delivery fees
+- src/MyOrders.jsx, src/orderStatus.js: the order list, the progress tracker and the order stages
+- src/orders.js, src/useOrders.js: placing, loading and cancelling orders in Supabase, and refreshing them while one is on its way
+- supabase/orders.sql: the orders tables, privacy rules, status history and the place and cancel functions
+- supabase/sql.test.js: tests that run the SQL files on a small in-memory Postgres
+- docs/order-management.md: how the shop updates an order's status, rider and arrival time
 - src/plantTypes.js, src/careRecommendations.js: the option lists
 - public/: web app manifest, icons and the offline service worker
 - docs/implementation-plan.md: the slice-by-slice build plan and scope changes
@@ -121,7 +144,7 @@ Plants are stored in your Supabase account (see "Accounts" above), with a copy o
 
 ## Not included
 
-A shared backend that would let people use photo identification without their own API key. It would need a server to keep that key secret. Real-time updates between open devices, and sign-in with Google or other providers, are not built either.
+A shared backend that would let people use photo identification without their own API key. It would need a server to keep that key secret. Real-time updates between open devices, and sign-in with Google or other providers, are not built either. Orders are not paid for inside the app (no M-PESA prompt or card payment), there is no staff screen for updating orders, no live map of the rider, and no emails or SMS when an order changes. Each of those would need a payment or messaging service.
 
 ## License
 

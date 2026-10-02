@@ -91,8 +91,8 @@ describe('plants live in the account', () => {
     fakeSupabase.state.offline = true
     setup()
     expect(screen.getByText('Cached Fern')).toBeInTheDocument()
-    expect(await screen.findByText(/you are offline/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    await waitFor(() => expect(document.querySelector('.hero-account')).toHaveTextContent(/you are offline/i))
+    expect(within(document.querySelector('.hero-account')).getByRole('button', { name: 'Try again' })).toBeInTheDocument()
   })
 
   it('sends changes made offline when the connection returns, including deletions', async () => {

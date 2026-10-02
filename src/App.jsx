@@ -3,9 +3,12 @@ import { buildBackup, parseBackup, readTheme, writeTheme } from './storage.js'
 import { deleteMyAccount, getCurrentPerson, readCachedPerson, signOutPerson, watchAuth } from './auth.js'
 import { useCloudPlants } from './useCloudPlants.js'
 import { clearLegacyPlants, readLegacyPlants, removeOldAccounts } from './legacy.js'
+import { useOrders } from './useOrders.js'
+import { isInTransit } from './orderStatus.js'
+import MyOrders from './MyOrders.jsx'
 import AuthScreen, { SetNewPassword } from './AuthScreen.jsx'
 import { filterPlants, sortPlants, todayString, wateringStatus } from './plantUtils.js'
-import { CameraIcon, DropIcon, LeafIcon, MoonIcon, PlantArt, PlusIcon, PrintIcon, SproutIcon, SunIcon } from './icons.jsx'
+import { CameraIcon, DropIcon, LeafIcon, MoonIcon, PlantArt, PlusIcon, PrintIcon, SproutIcon, SunIcon, TruckIcon } from './icons.jsx'
 import PlantForm from './PlantForm.jsx'
 import PlantCard from './PlantCard.jsx'
 import PlantControls from './PlantControls.jsx'
@@ -26,6 +29,8 @@ const SYNC_LABELS = {
 
 function Workspace({ auth }) {
   const { plants, setPlants, status, detail, retry, finish } = useCloudPlants(auth.user.id)
+  const orderState = useOrders(auth.user.id)
+  const inTransit = orderState.orders.filter(isInTransit)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const [legacy, setLegacy] = useState(readLegacyPlants)
@@ -177,6 +182,7 @@ function Workspace({ auth }) {
             <a href="#my-plants">My plants</a>
             <a href="#guide">Guide</a>
             <a href="#shop">Shop</a>
+            <a href="#orders">Orders</a>
             <a href="#share">Share</a>
             <a href="#backup">Backup</a>
           </nav>
@@ -223,6 +229,13 @@ function Workspace({ auth }) {
           </div>
           <PlantArt className="hero-art" />
         </section>
+
+        {inTransit.map((order) => (
+          <p key={order.id} className="notice transit-banner" role="status">
+            <TruckIcon size={18} /> Your order <strong>{order.code}</strong> is out for delivery.{' '}
+            <a href="#orders">Track it</a>
+          </p>
+        ))}
 
         {status === 'setup' && (
           <p className="notice" role="alert">
@@ -311,7 +324,11 @@ function Workspace({ auth }) {
 
         <PestGuide />
 
-        <PlantShop />
+        <PlantShop person={auth.user} onPlaceOrder={orderState.place} />
+
+        <MyOrders orders={orderState.orders} status={orderState.status} detail={orderState.detail}
+          refreshing={orderState.refreshing} checkedAt={orderState.checkedAt} onRefresh={orderState.refresh}
+          onCancel={orderState.cancel} />
 
         <QrShare />
 

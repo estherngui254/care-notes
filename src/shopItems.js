@@ -12,6 +12,22 @@ export const MPESA = {
   till: '296741',
 }
 
+// Where orders can be delivered and what delivery costs there. These areas and fees are SAMPLES for
+// the demo: replace them with the shop's real delivery areas and prices before taking live orders.
+export const DELIVERY_ZONES = [
+  { id: 'nairobi-central', label: 'Nairobi CBD, Westlands, Kilimani, Lavington', feeKsh: 300 },
+  { id: 'nairobi-other', label: 'Other parts of Nairobi', feeKsh: 450 },
+  { id: 'nairobi-environs', label: 'Kiambu, Ruiru, Kitengela, Rongai, Ngong', feeKsh: 700 },
+  { id: 'other-town', label: 'Other towns (sent by courier)', feeKsh: 1000 },
+]
+
+// Where customers pick up an order they chose to collect. Also a SAMPLE: set the real address.
+export const COLLECTION_POINT = {
+  name: 'Plant Care shop',
+  address: 'Set the shop address in src/shopItems.js',
+  hours: 'Monday to Saturday, 9 am to 5 pm',
+}
+
 export const SHOP_CATEGORIES = [
   { id: 'plant', label: 'Indoor plants and flowers' },
   { id: 'media', label: 'Plant media' },

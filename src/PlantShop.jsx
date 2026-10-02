@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BagIcon } from './icons.jsx'
+import CheckoutForm from './CheckoutForm.jsx'
 import { MPESA, SHOP_CATEGORIES, SHOP_ITEMS, formatKsh, formatUsd, usdFromKsh } from './shopItems.js'
 
 const ALL = 'all'
@@ -8,11 +9,13 @@ function categoryLabel(id) {
   return SHOP_CATEGORIES.find((category) => category.id === id)?.label ?? ''
 }
 
-export default function PlantShop() {
+// `person` is the signed-in customer (used to fill in the checkout form) and `onPlaceOrder` sends an order to the shop.
+export default function PlantShop({ person, onPlaceOrder }) {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState(ALL)
   const [basket, setBasket] = useState({})
-  const [order, setOrder] = useState('')
+  const [checkingOut, setCheckingOut] = useState(false)
+  const [placedOrder, setPlacedOrder] = useState(null)
   const [openGroups, setOpenGroups] = useState(() => new Set())
 
   const filtering = query.trim() !== '' || category !== ALL
@@ -61,7 +64,7 @@ export default function PlantShop() {
 
   function addItem(id) {
     setBasket((current) => ({ ...current, [id]: (current[id] ?? 0) + 1 }))
-    setOrder('')
+    setPlacedOrder(null)
   }
 
   function changeQty(id, delta) {
@@ -72,19 +75,25 @@ export default function PlantShop() {
       else delete next[id]
       return next
     })
-    setOrder('')
   }
 
-  function placeOrder() {
-    if (basketCount === 0) return
-    setOrder(
-      `Order saved in this browser: ${basketCount} ${basketCount === 1 ? 'item' : 'items'}, `
-      + `${formatKsh(totalKsh)} (about ${formatUsd(totalUsd)}). `
-      + `Pay ${MPESA.provider} to ${MPESA.method} till ${MPESA.till}, `
-      + 'or pay cash on collection or delivery. Nothing is charged from this site.',
-    )
+  function emptyBasket() {
     setBasket({})
+    setCheckingOut(false)
   }
+
+  const placeOrder = (order) => (onPlaceOrder
+    ? onPlaceOrder(order)
+    : Promise.resolve({ error: { text: 'Ordering is not available right now.' } }))
+
+  function orderPlaced(order) {
+    setPlacedOrder(order)
+    setBasket({})
+    setCheckingOut(false)
+  }
+
+  // With nothing left in the basket there is nothing to check out.
+  const showCheckout = checkingOut && lines.length > 0
 
   return (
     <section className="shop no-print" id="shop" aria-labelledby="shop-heading">
@@ -127,7 +136,7 @@ export default function PlantShop() {
             <h3 id="basket-heading">
               Your basket <span className="count">{basketCount} {basketCount === 1 ? 'item' : 'items'}</span>
             </h3>
-            <button type="button" className="link" onClick={() => setBasket({})}>Empty basket</button>
+            <button type="button" className="link" onClick={emptyBasket}>Empty basket</button>
           </div>
           <ul className="basket-list">
             {lines.map((line) => (
@@ -155,12 +164,44 @@ export default function PlantShop() {
             Pay with <strong>{MPESA.provider}</strong> — {MPESA.method} till{' '}
             <strong className="till">{MPESA.till}</strong>, or cash on collection or delivery.
           </p>
+          {!showCheckout && (
+            <div className="actions">
+              <button type="button" onClick={() => { setPlacedOrder(null); setCheckingOut(true) }}>Checkout</button>
+            </div>
+          )}
+          {showCheckout && (
+            <CheckoutForm lines={lines} subtotalKsh={totalKsh} person={person} onPlace={placeOrder}
+              onPlaced={orderPlaced} onBack={() => setCheckingOut(false)} />
+          )}
+        </div>
+      )}
+
+      {placedOrder && (
+        <div className="order-placed" role="status" aria-label="Order placed">
+          <h3>Thank you, your order is placed</h3>
+          <p>
+            Your tracking code is <strong className="tracking-code">{placedOrder.code}</strong>. Use it to follow your order
+            in <strong>My orders</strong>.
+          </p>
+          <p>
+            {placedOrder.fulfilment === 'delivery' ? 'We will deliver to ' : 'You will collect from the shop. '}
+            {placedOrder.address && <strong>{placedOrder.address.street}, {placedOrder.address.area}</strong>}
+            {placedOrder.address && '. '}
+            Total <strong>{formatKsh(placedOrder.totalKsh)}</strong> (about {formatUsd(usdFromKsh(placedOrder.totalKsh))}).
+          </p>
+          <p>
+            {placedOrder.payment.method === 'mpesa'
+              ? placedOrder.payment.reference
+                ? <>We have your M-PESA code <strong>{placedOrder.payment.reference}</strong>. We will confirm your payment.</>
+                : <>Pay with {MPESA.provider} to {MPESA.method} till <strong className="till">{MPESA.till}</strong>. We will confirm your order once your payment arrives.</>
+              : <>You will pay in cash {placedOrder.fulfilment === 'delivery' ? 'when the rider arrives' : 'at the shop'}.</>}
+          </p>
           <div className="actions">
-            <button type="button" onClick={placeOrder}>Place order</button>
+            <a className="button-link" href="#orders">Track this order</a>
+            <button type="button" className="secondary" onClick={() => setPlacedOrder(null)}>Keep shopping</button>
           </div>
         </div>
       )}
-      {order && <p className="hint shop-order" role="status">{order}</p>}
 
       {items.length === 0 ? (
         <div className="shop-empty">

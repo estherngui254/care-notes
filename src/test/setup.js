@@ -9,8 +9,11 @@ vi.mock('../supabaseClient.js', async () => {
   return { supabase: fake.client }
 })
 
+// A few tests (the SQL ones) run in plain Node, with no browser at all.
+const hasBrowser = typeof window !== 'undefined'
+
 // jsdom does not implement scrollIntoView.
-Element.prototype.scrollIntoView = () => {}
+if (hasBrowser) Element.prototype.scrollIntoView = () => {}
 
 // The app is only shown to someone who is signed in, so most tests start with a signed-in test
 // account. The tests about signing in and registering start with nobody signed in instead.
@@ -18,12 +21,14 @@ export const TEST_USER = { name: 'Test User', email: 'test@example.com', passwor
 const startsSignedOut = () => /accounts\./.test(expect.getState().testPath ?? '')
 
 beforeEach(() => {
+  if (!hasBrowser) return
   fakeSupabase.reset()
   if (startsSignedOut()) return
   fakeSupabase.signInAs(fakeSupabase.addUser(TEST_USER))
 })
 
 afterEach(() => {
+  if (!hasBrowser) return
   cleanup()
   window.localStorage.clear()
   window.sessionStorage.clear()

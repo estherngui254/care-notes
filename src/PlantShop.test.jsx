@@ -118,12 +118,13 @@ describe('PlantShop', () => {
     expect(within(basket).getByText('3 items')).toBeInTheDocument()
     expect(within(basket).getByText(formatKsh(withQty))).toBeInTheDocument()
 
-    await user.click(within(basket).getByRole('button', { name: 'Place order' }))
-    const status = screen.getByRole('status')
-    expect(status).toHaveTextContent('3 items')
-    expect(status).toHaveTextContent(formatKsh(withQty))
-    expect(status).toHaveTextContent(formatUsd(usdFromKsh(withQty)))
-    expect(screen.queryByRole('region', { name: /your basket/i })).not.toBeInTheDocument()
+    // Checkout opens a form with the same total, and can be left without losing the basket.
+    await user.click(within(basket).getByRole('button', { name: 'Checkout' }))
+    const summary = within(screen.getByRole('form', { name: 'Checkout' })).getByRole('group', { name: 'Order summary' })
+    expect(within(summary).getByText(formatUsd(usdFromKsh(withQty)), { exact: false })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Back to basket' }))
+    expect(screen.queryByRole('form', { name: 'Checkout' })).not.toBeInTheDocument()
+    expect(within(basket).getByText('3 items')).toBeInTheDocument()
   })
 
   it('offers M-PESA payment with a till number', async () => {
@@ -137,14 +138,15 @@ describe('PlantShop', () => {
     expect(within(basket).getByText(MPESA.till)).toBeInTheDocument()
   })
 
-  it('repeats the M-PESA till number in the order confirmation', async () => {
+  it('shows the M-PESA till number again at checkout', async () => {
     const user = userEvent.setup({ applyAccept: false })
     render(<PlantShop />)
     await user.click(within(rowFor('Terracotta pot')).getByRole('button', { name: 'Add Terracotta pot to basket' }))
-    await user.click(screen.getByRole('button', { name: 'Place order' }))
-    const status = screen.getByRole('status')
-    expect(status).toHaveTextContent(`Pay ${MPESA.provider} to ${MPESA.method} till ${MPESA.till}`)
-    expect(status).toHaveTextContent('cash on collection or delivery')
+    await user.click(screen.getByRole('button', { name: 'Checkout' }))
+    const form = screen.getByRole('form', { name: 'Checkout' })
+    expect(within(form).getByLabelText(new RegExp(`${MPESA.provider} \\(${MPESA.method} till ${MPESA.till}\\)`))).toBeChecked()
+    expect(form).toHaveTextContent(`till number ${MPESA.till}`)
+    expect(form).toHaveTextContent('Nothing is charged from this site')
   })
 
   it('removes a whole line from the basket', async () => {

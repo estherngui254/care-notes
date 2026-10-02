@@ -97,6 +97,23 @@ Run `supabase/schema.sql` in the Supabase SQL Editor first, or saving will not w
 | 50 | Old plants from this browser | On a browser that held plants from before accounts were online, sign in. | A banner offers to add them. After **Add**, they are in the account and the old copies are gone. **Not now** keeps them. | App.cloud.test.jsx | **manual** (old data) |
 | 51 | Delete account | Under Backup choose **Delete account** and confirm. | The account and its plants are removed. In Supabase, the user and its rows are gone. You are back on the sign-in page. | App.accounts.test.jsx | **manual** (real database) |
 | 52 | Look and keyboard | Open the sign-in page in light and dark mode and on a phone. Use only the keyboard: Tab through the form and submit it with Enter. | The page is readable and fits the screen. Focus starts in the first field, every control can be reached with Tab, and Enter submits. | none | **manual** |
+## Checkout and order tracking
+
+Run `supabase/orders.sql` in the Supabase SQL Editor first. The automated tests use an in-memory fake, and `supabase/sql.test.js` runs the SQL on a small in-memory Postgres, so the checks marked **manual** are the ones that need your real project.
+
+| # | Check | Steps | Expected | Automated test | Result |
+|---|-------|-------|----------|----------------|--------|
+| 53 | Checkout form | Add two items, choose **Checkout**. Choose an area, then switch to collection. | The form is filled in with your name and email. The summary shows items, the area's delivery fee and the total in KSh and dollars. Collection shows no address fields and a free fee. | App.orders.test.jsx | |
+| 54 | Checkout checks | Submit the form empty, then with a phone number like 12345, then with a short M-PESA code. | Each problem has its own message and nothing is sent. Phone numbers like 0712 345 678 and +254 712 345 678 are accepted. | App.orders.test.jsx, orderLogic.test.js | |
+| 55 | Place an order | Complete a delivery order paying by M-PESA with a code. | A confirmation shows the tracking code, the address, the total and the M-PESA code. The basket empties. The order appears under **My orders** as **Order placed**. | App.orders.test.jsx | **manual** (real database) |
+| 56 | Order in Supabase | Open Supabase **Table Editor ? orders**. | One row with your `tracking_code`, `status` placed, the items, the total including the fee, and your `user_id`. The `order_events` table has a "We received your order" entry. | sql.test.js | **manual** (real database) |
+| 57 | Collection and cash | Place an order for collection, paying at the shop. | No address is asked or stored, no fee is added, and the tracker has four steps ending at Collected. | App.orders.test.jsx | |
+| 58 | Tracking through delivery | In Supabase, update the order as in docs/order-management.md: confirmed, packed, then out for delivery with a rider and arrival time. Watch **My orders** without reloading. | Within about 30 seconds, or after **Check for updates**, each stage lights up with its time. Out for delivery shows a green card with the rider's name, a **Call** button and the estimated arrival, and a banner at the top of the app. | App.orders.test.jsx | **manual** (real database) |
+| 59 | Delivered | Set the order to `delivered`. | All five steps are ticked, the banner and the green card disappear, and the page says all orders are complete. | App.orders.test.jsx | **manual** (real database) |
+| 60 | Cancel | Place an order and choose **Cancel this order**. Then try cancelling one the shop has packed. | The first is cancelled and the history says so. A packed order has no Cancel button, or says it can no longer be cancelled. | App.orders.test.jsx, sql.test.js | **manual** (real database) |
+| 61 | Privacy | Sign in as a second person. | You see none of the first person's orders. Directly editing an order from the browser is refused. | App.orders.test.jsx, sql.test.js | **manual** (two accounts) |
+| 62 | Find by code and phone view | Type a tracking code in **Find an order**. View **My orders** on a phone. | Only that order shows. On a phone the tracker runs down the page and nothing scrolls sideways. | App.orders.test.jsx | **manual** (phone) |
+| 63 | Orders not set up | Before running `orders.sql`, open **My orders** and try to place an order. | A message says orders are not set up and names `supabase/orders.sql`. Nothing breaks. | App.orders.test.jsx | |
 ## Main workflow run
 
 Add a plant, see it in the list, edit it, refresh to confirm it was saved, then delete it. All steps should work using only the visible controls.
