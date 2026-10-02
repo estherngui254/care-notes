@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BagIcon } from './icons.jsx'
 import { MPESA, SHOP_CATEGORIES, SHOP_ITEMS, formatKsh, formatUsd, usdFromKsh } from './shopItems.js'
 
@@ -13,6 +13,7 @@ export default function PlantShop() {
   const [category, setCategory] = useState(ALL)
   const [basket, setBasket] = useState({})
   const [order, setOrder] = useState('')
+  const [openGroups, setOpenGroups] = useState(() => new Set())
 
   const filtering = query.trim() !== '' || category !== ALL
 
@@ -25,6 +26,18 @@ export default function PlantShop() {
     })
   }, [query, category])
 
+  // While a filter is active, open every group that still has matches so the results are visible.
+  useEffect(() => {
+    if (!filtering) return
+    setOpenGroups((prev) => {
+      const next = new Set(prev)
+      for (const { id } of SHOP_CATEGORIES) {
+        if (items.some((item) => item.category === id)) next.add(id)
+      }
+      return next
+    })
+  }, [filtering, items])
+
   const lines = SHOP_ITEMS
     .filter((item) => basket[item.id] > 0)
     .map((item) => ({ ...item, qty: basket[item.id] }))
@@ -35,6 +48,15 @@ export default function PlantShop() {
   function clearFilters() {
     setQuery('')
     setCategory(ALL)
+  }
+
+  function toggleGroup(id) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
   function addItem(id) {
@@ -146,34 +168,50 @@ export default function PlantShop() {
           <button type="button" className="link" onClick={clearFilters}>Clear filters</button>
         </div>
       ) : (
-        <div className="shop-table-wrap">
-          <table className="shop-table" aria-label="Items for sale">
-            <thead>
-              <tr>
-                <th scope="col">Item</th>
-                <th scope="col">Details</th>
-                <th scope="col" className="num">KSh</th>
-                <th scope="col" className="num">USD</th>
-                <th scope="col" className="num"><span className="sr-only">Add to basket</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id}>
-                  <th scope="row" className="shop-item">
-                    {item.name} <span className="kind">{categoryLabel(item.category)}</span>
-                  </th>
-                  <td className="shop-detail">{item.detail}</td>
-                  <td className="num shop-ksh">{formatKsh(item.priceKsh)}</td>
-                  <td className="num shop-usd">{formatUsd(usdFromKsh(item.priceKsh))}</td>
-                  <td className="num shop-action">
-                    <button type="button" className="secondary" onClick={() => addItem(item.id)}
-                      aria-label={`Add ${item.name} to basket`}>Add to basket</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="shop-groups">
+          {SHOP_CATEGORIES.map(({ id, label }) => {
+            const groupItems = items.filter((item) => item.category === id)
+            if (groupItems.length === 0) return null
+            return (
+              <details key={id} className="shop-group" open={openGroups.has(id)}>
+                <summary onClick={() => toggleGroup(id)}>
+                  <span className="shop-group-title">{label}</span>
+                  <span className="shop-group-count">
+                    {groupItems.length} {groupItems.length === 1 ? 'item' : 'items'}
+                  </span>
+                </summary>
+                <div className="shop-table-wrap">
+                  <table className="shop-table" aria-label={`${label} for sale`}>
+                    <thead>
+                      <tr>
+                        <th scope="col">Item</th>
+                        <th scope="col">Details</th>
+                        <th scope="col" className="num">KSh</th>
+                        <th scope="col" className="num">USD</th>
+                        <th scope="col" className="num"><span className="sr-only">Add to basket</span></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groupItems.map((item) => (
+                        <tr key={item.id}>
+                          <th scope="row" className="shop-item">
+                            {item.name} <span className="kind">{categoryLabel(item.category)}</span>
+                          </th>
+                          <td className="shop-detail">{item.detail}</td>
+                          <td className="num shop-ksh">{formatKsh(item.priceKsh)}</td>
+                          <td className="num shop-usd">{formatUsd(usdFromKsh(item.priceKsh))}</td>
+                          <td className="num shop-action">
+                            <button type="button" className="secondary" onClick={() => addItem(item.id)}
+                              aria-label={`Add ${item.name} to basket`}>Add to basket</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            )
+          })}
         </div>
       )}
     </section>

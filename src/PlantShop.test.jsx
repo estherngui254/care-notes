@@ -5,12 +5,20 @@ import PlantShop from './PlantShop.jsx'
 import App from './App.jsx'
 import { MPESA, SHOP_CATEGORIES, SHOP_ITEMS, formatKsh, formatUsd, usdFromKsh } from './shopItems.js'
 
-function shopGrid() {
-  return screen.getByRole('table', { name: 'Items for sale' })
+function groups() {
+  return [...document.querySelectorAll('.shop-group')]
+}
+
+function groupFor(title) {
+  return groups().find((group) => group.querySelector('.shop-group-title')?.textContent === title)
+}
+
+function rowHeaders() {
+  return screen.getAllByRole('rowheader')
 }
 
 function rowFor(name) {
-  return within(shopGrid()).getByText(name).closest('tr')
+  return within(document.querySelector('.shop-groups')).getByText(name).closest('tr')
 }
 
 function item(name) {
@@ -20,7 +28,7 @@ function item(name) {
 describe('PlantShop', () => {
   it('lists every item with its name and price in KSh and dollars', () => {
     render(<PlantShop />)
-    expect(within(shopGrid()).getAllByRole('rowheader')).toHaveLength(SHOP_ITEMS.length)
+    expect(rowHeaders()).toHaveLength(SHOP_ITEMS.length)
     expect(screen.getByText(`${SHOP_ITEMS.length} items for sale`)).toBeInTheDocument()
     for (const entry of SHOP_ITEMS) {
       const row = rowFor(entry.name)
@@ -31,13 +39,42 @@ describe('PlantShop', () => {
     }
   })
 
+  it('groups the items into three collapsible category dropdowns', () => {
+    render(<PlantShop />)
+    expect(groups()).toHaveLength(SHOP_CATEGORIES.length)
+    for (const group of groups()) expect(group).not.toHaveAttribute('open')
+    for (const { id, label } of SHOP_CATEGORIES) {
+      const count = SHOP_ITEMS.filter((entry) => entry.category === id).length
+      const group = groupFor(label)
+      expect(group).toBeInTheDocument()
+      expect(group.querySelector('.shop-group-count').textContent)
+        .toContain(`${count} ${count === 1 ? 'item' : 'items'}`)
+      expect(within(group).getAllByRole('rowheader')).toHaveLength(count)
+      expect(screen.getByRole('table', { name: `${label} for sale` })).toBeInTheDocument()
+    }
+  })
+
+  it('opens and closes a category dropdown', async () => {
+    const user = userEvent.setup({ applyAccept: false })
+    render(<PlantShop />)
+    const pots = groupFor('Pots and planters')
+    expect(pots).not.toHaveAttribute('open')
+    await user.click(pots.querySelector('summary'))
+    expect(pots).toHaveAttribute('open')
+    expect(within(pots).getByRole('rowheader', { name: /Terracotta pot/ })).toBeInTheDocument()
+    await user.click(pots.querySelector('summary'))
+    expect(pots).not.toHaveAttribute('open')
+  })
+
   it('filters by category', async () => {
     const user = userEvent.setup({ applyAccept: false })
     render(<PlantShop />)
     await user.selectOptions(screen.getByLabelText('Category'), 'pot')
     const pots = SHOP_ITEMS.filter((entry) => entry.category === 'pot')
-    expect(within(shopGrid()).getAllByRole('rowheader')).toHaveLength(pots.length)
+    expect(rowHeaders()).toHaveLength(pots.length)
     expect(screen.getByText(`Showing ${pots.length} of ${SHOP_ITEMS.length} items`)).toBeInTheDocument()
+    expect(groups()).toHaveLength(1)
+    expect(groups()[0]).toHaveAttribute('open')
     expect(screen.queryByText('Moth Orchid')).not.toBeInTheDocument()
   })
 
@@ -61,7 +98,7 @@ describe('PlantShop', () => {
     const empty = screen.getByText('No items match your search.')
     await user.click(within(empty).getByRole('button', { name: 'Clear filters' }))
     expect(screen.getByText(`${SHOP_ITEMS.length} items for sale`)).toBeInTheDocument()
-    expect(within(shopGrid()).getAllByRole('rowheader')).toHaveLength(SHOP_ITEMS.length)
+    expect(rowHeaders()).toHaveLength(SHOP_ITEMS.length)
   })
 
   it('adds items to the basket with totals in both currencies', async () => {
