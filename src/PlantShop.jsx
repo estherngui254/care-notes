@@ -3,6 +3,7 @@ import { BagIcon } from './icons.jsx'
 import CheckoutForm from './CheckoutForm.jsx'
 import { MPESA, SHOP_CATEGORIES, SHOP_ITEMS, formatKsh, formatUsd, usdFromKsh } from './shopItems.js'
 import { fetchOutOfStock } from './shopStock.js'
+import { formatDateTime } from './orderStatus.js'
 
 const ALL = 'all'
 
@@ -155,8 +156,10 @@ const lines = SHOP_ITEMS
         {filtering && (
           <button type="button" className="secondary control-clear" onClick={clearFilters}>Clear filters</button>
         )}
-        {stockCheckedAt && (
-          <button type="button" className="secondary control-clear" onClick={refreshStock}>Check stock</button>
+        {stockCheckedAt > 0 && (
+          <button type="button" className="secondary control-clear" onClick={refreshStock}>
+            Check stock<span className="stock-checked"> checked {formatDateTime(new Date(stockCheckedAt).toISOString())}</span>
+          </button>
         )}
       </div>
 

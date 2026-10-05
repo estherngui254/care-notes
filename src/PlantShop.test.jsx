@@ -196,7 +196,7 @@ describe('PlantShop', () => {
     fakeSupabase.setStock('peace-lily', true)
     expect(within(rowFor('Peace Lily')).getByText('Out of stock')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Check stock' }))
+    await user.click(screen.getByRole('button', { name: /check stock/i }))
     await waitFor(() => expect(within(rowFor('Peace Lily')).queryByText('Out of stock')).not.toBeInTheDocument())
     const row = rowFor('Peace Lily')
     expect(within(row).getByRole('button', { name: 'Add Peace Lily to basket' })).toBeEnabled()
@@ -234,5 +234,15 @@ describe('PlantShop', () => {
     await user.click(within(rowFor('Calathea')).getByRole('button', { name: 'Add Calathea to basket' }))
     expect(screen.getByRole('region', { name: /your basket/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Checkout' })).toBeInTheDocument()
+    // nothing was checked, so there is nothing to refresh
+    expect(screen.queryByRole('button', { name: /check stock/i })).not.toBeInTheDocument()
+  })
+
+  it('says when stock was last checked, so a stale answer is obvious', async () => {
+    render(<PlantShop />)
+    const check = await screen.findByRole('button', { name: /check stock/i })
+    expect(check).toHaveTextContent(/checked/i)
+    // nothing is flagged in this test, so every item is still orderable
+    expect(rowFor('Calathea')).not.toHaveTextContent('Out of stock')
   })
 })

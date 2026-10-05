@@ -132,6 +132,33 @@ checkout stops with an explanation if it is already in someone's basket. Custome
 **Check stock** to see the latest, and stock is checked again when they start an order. Nobody can
 change this table from the app.
 
+## Checking that a flag is working
+
+If an item is flagged but the shop still shows it as available, check these in the SQL Editor:
+
+```sql
+-- 1. Is the row there, and is in_stock really false? (no rows at all means nothing is flagged)
+select item_id, in_stock, note, updated_at from public.shop_stock order by item_id;
+
+-- 2. Does the item_id match one of the catalogue ids exactly?
+select item_id from public.shop_stock
+where item_id not in (
+  'monstera', 'snake-plant', 'peace-lily', 'zz-plant', 'areca-palm', 'calathea', 'golden-pothos',
+  'moth-orchid', 'african-violet', 'anthurium', 'maidenhair-fern', 'bird-of-paradise',
+  'potting-soil', 'coco-peat', 'garden-compost', 'perlite', 'river-sand', 'hort-charcoal',
+  'nursery-pot', 'ceramic-planter', 'terracotta-pot', 'hanging-planter', 'self-watering-pot', 'basket-cover'
+);
+```
+
+Anything returned by the second query has a mistyped id and will never match an item. The ids are
+the `id` values in `src/shopItems.js` (lower case with dashes), not the display names.
+
+In the app, the **Check stock** button shows when availability was last read. If it says "checked"
+with a recent time and the item is still shown as available, the row's `in_stock` is not `false`.
+
+Note: this is an installed web app, so a browser that opened it before may show an older copy for a
+moment. Reload the page (or close and reopen the app) after you deploy, and press **Check stock**.
+
 ## How quickly customers see changes
 
 While an order is on its way, the customer's page checks for updates every 30 seconds, and again when they switch
