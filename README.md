@@ -18,6 +18,7 @@ A small React + Vite app for keeping care notes for your houseplants. You sign i
 - Export and import a JSON backup.
 - Light and dark mode, and a print view for a care sheet.
 - Plant shop with checkout and order tracking: browse plants, plant media and pots in KSh and USD, fill a basket and check out for delivery or collection, paying by M-PESA or cash. Follow each order under **My orders** from placed to delivered, with the rider's name, a call button and the estimated arrival while it is on its way. Customers can cancel until the order is packed.
+- **Contact** section: read the shop's updates, send a message to the shop, and leave a review, complaint or compliment. Messages and feedback are seen only by the shop in the Supabase dashboard — never by other customers — and updates are posted by the shop and read by everyone signed in. See [docs/contact-and-feedback.md](docs/contact-and-feedback.md).
 - Installable as an app and works offline (PWA).
 - Sign in first: the app opens on a sign-in and register page, and nothing else is shown or editable until you are signed in. Accounts keep each person's plants separate on a shared device. See "Accounts" below for what they do and do not do.
 - A scannable QR code (in the **Share** section) that opens the live site, with a copy-link button and a download of the code as an image. The code always points to the published address in `src/site.js`, even when the app is open on another address, and is always dark on white so every phone can scan it.
@@ -62,6 +63,9 @@ Everyone has to sign in first. When the app opens, the only thing shown is a pag
 2. In the dashboard open **SQL Editor**, paste all of `supabase/schema.sql` and run it. It creates the `plants` table, turns on Row Level Security so everyone only reaches their own plants, and adds the `delete_my_account` function.
 3. Under **Authentication → URL Configuration** set the **Site URL** to the published address, and add it and `http://localhost:5173/` to **Redirect URLs**, so confirmation and reset links come back to the app.
 4. Optional: Supabase's built-in email sending is meant for trying things out and is limited. For a real launch, add your own email (SMTP) service under **Authentication**.
+5. For the Contact section (messages, feedback and updates), run `supabase/contact.sql` in the SQL Editor. [docs/contact-and-feedback.md](docs/contact-and-feedback.md) explains how to read messages and feedback and how to post an update.
+
+**Optional sample data:** to see the app with something already in it, register an account (for example `demo@example.com`) and confirm the address, then run `supabase/seed.sql` in the SQL Editor: it adds 10 sample plants with care notes, watering schedules, care profiles and problems to work through. The shop samples are in `supabase/seed-orders.sql` (run it after `supabase/orders.sql`): 5 orders covering delivered, collected, out for delivery, waiting for the shop and cancelled, each with its history. Both files send the data to `demo@example.com` if that account exists, otherwise to the earliest account, and both are safe to run again: they put the demo rows back as written. Every row they add has an id starting with `seed-` or a tracking code starting with `PCN-DM`, so it is easy to spot and remove.
 
 **Security notes**
 - The publishable key (`sb_publishable_...`) is meant to be public. What protects the data is Row Level Security in `supabase/schema.sql`. Never put the secret key, the `service_role` key or the database password in this app.
@@ -121,6 +125,10 @@ Open the local address shown in the terminal. Keep the terminal running.
 - src/cloudPlants.js, src/useCloudPlants.js: saving and loading plants in the account, the offline copy and merging offline changes
 - src/legacy.js: finds plants saved in the browser before accounts moved online, so they can be added to the account
 - supabase/schema.sql: the database table, privacy rules and delete-account function to run in Supabase
+- supabase/seed.sql, supabase/seed-orders.sql: sample plants and sample shop orders to try the app with (optional)
+- supabase/add-order.sql: add one customer order from the shop side, without going through the checkout
+- supabase/contact.sql: the messages, feedback and news tables with their privacy rules
+- src/contact.js, src/ContactShop.jsx: the Contact section — sending messages and feedback, reading updates
 - src/test/fakeSupabase.js: an in-memory stand-in for Supabase, so the tests never touch the real project
 - src/storage.js: reading, writing, migrating and backing up saved data
 - src/photo.js: photo validation and compression
@@ -131,8 +139,9 @@ Open the local address shown in the terminal. Keep the terminal running.
 - src/MyOrders.jsx, src/orderStatus.js: the order list, the progress tracker and the order stages
 - src/orders.js, src/useOrders.js: placing, loading and cancelling orders in Supabase, and refreshing them while one is on its way
 - supabase/orders.sql: the orders tables, privacy rules, status history and the place and cancel functions
-- supabase/sql.test.js: tests that run the SQL files on a small in-memory Postgres
+- supabase/sql.test.js: tests that run the SQL files, including the sample data, on a small in-memory Postgres
 - docs/order-management.md: how the shop updates an order's status, rider and arrival time
+- docs/contact-and-feedback.md: how the shop reads messages and feedback, and posts updates
 - src/plantTypes.js, src/careRecommendations.js: the option lists
 - public/: web app manifest, icons and the offline service worker
 - docs/implementation-plan.md: the slice-by-slice build plan and scope changes

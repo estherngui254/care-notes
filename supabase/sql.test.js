@@ -7,9 +7,16 @@
 import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { normalizePlants } from '../src/storage.js'
+import { CARE_RECOMMENDATIONS } from '../src/careRecommendations.js'
+import { PROBLEMS } from '../src/pestsAndDiseases.js'
 
 const schemaSql = readFileSync(new URL('./schema.sql', import.meta.url), 'utf8')
 const ordersSql = readFileSync(new URL('./orders.sql', import.meta.url), 'utf8')
+const seedSql = readFileSync(new URL('./seed.sql', import.meta.url), 'utf8')
+const seedOrdersSql = readFileSync(new URL('./seed-orders.sql', import.meta.url), 'utf8')
+const addOrderSql = readFileSync(new URL('./add-order.sql', import.meta.url), 'utf8')
+const contactSql = readFileSync(new URL('./contact.sql', import.meta.url), 'utf8')
 
 let db
 const ALICE = '11111111-1111-1111-1111-111111111111'
@@ -56,7 +63,7 @@ beforeAll(async () => {
   // Stand-ins for what Supabase provides.
   await db.exec(`
     create schema auth;
-    create table auth.users (id uuid primary key default gen_random_uuid(), email text);
+    create table auth.users (id uuid primary key default gen_random_uuid(), email text, raw_user_meta_data jsonb, created_at timestamptz not null default now());
     create function auth.uid() returns uuid language sql stable
       as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
     create role anon nologin;
@@ -329,5 +336,166 @@ describe('deleting an account', () => {
     await as('anon', async () => {
       await fails(db.query('select public.delete_my_account()'), /permission denied/i)
     })
+  })
+})
+
+describe('the sample data', () => {
+  const DEMO = '55555555-5555-5555-5555-555555555555'
+  const seedPlants = "select count(*)::int as n from public.plants where id like 'seed-%'"
+  const seedOrders = "select count(*)::int as n from public.orders where tracking_code like 'PCN-DM%'"
+  const seedEvents =
+    'select count(*)::int as n from public.order_events e join public.orders o on o.id = e.order_id '
+    + "where o.tracking_code like 'PCN-DM%'"
+  const count = async (sql) => (await rows(sql))[0].n
+
+  it('is added to one account, in the shapes the app accepts', async () => {
+    await db.query("insert into auth.users (id, email) values ($1, 'demo@example.com')", [DEMO])
+    await db.exec(seedSql)
+    await db.exec(seedOrdersSql)
+
+    expect(await count(seedPlants)).toBe(10)
+    expect(await count(seedOrders)).toBe(5)
+    expect(await count(seedEvents)).toBe(17)
+
+    const stored = (await rows('select data from public.plants where user_id = $1', [DEMO])).map((row) => row.data)
+    const plants = normalizePlants(stored)
+    expect(plants).toHaveLength(10)
+    expect(plants.every((plant) => plant.name && plant.careNote)).toBe(true)
+    expect(plants.every((plant) => plant.recommendations.every((pick) => CARE_RECOMMENDATIONS.includes(pick)))).toBe(true)
+
+    const issues = plants.flatMap((plant) => plant.issues)
+    expect(issues).toHaveLength(5)
+    expect(issues.every((issue) => issue.suspected === ''
+      || PROBLEMS.some((problem) => problem.name === issue.suspected))).toBe(true)
+    expect(issues.every((issue) => {
+      const problem = PROBLEMS.find((candidate) => candidate.name === issue.suspected)
+      return !problem || issue.stepsDone.every((step) => problem.treatment.includes(step))
+    })).toBe(true)
+  })
+
+  it('can be run a second time without duplicating anything', async () => {
+    await db.exec(seedSql)
+    await db.exec(seedOrdersSql)
+    expect(await count(seedPlants)).toBe(10)
+    expect(await count(seedOrders)).toBe(5)
+    expect(await count(seedEvents)).toBe(17)
+  })
+
+  it('stays with that account under Row Level Security', async () => {
+    expect((await as(DEMO, () => rows(seedPlants)))[0].n).toBe(10)
+    expect((await as(DEMO, () => rows(seedOrders)))[0].n).toBe(5)
+    expect((await as(ALICE, () => rows(seedPlants)))[0].n).toBe(0)
+    expect((await as(ALICE, () => rows(seedOrders)))[0].n).toBe(0)
+    expect((await as(ALICE, () => rows(seedEvents)))[0].n).toBe(0)
+  })
+
+  it('leaves the shop rules in place', async () => {
+    // The history trigger was switched off while the demo rows went in, and is back on now.
+    const order = await as(DEMO, async () => (await place()).rows[0])
+    expect(order.tracking_code).toMatch(/^PCN-/)
+    expect((await rows('select count(*)::int as n from public.order_events where order_id = $1', [order.id]))[0].n).toBe(1)
+    // One seeded order is waiting for the shop, so the limit of 5 waiting orders still allows this.
+    const waiting = await rows("select count(*)::int as n from public.orders where user_id = $1 and status = 'placed'", [DEMO])
+    expect(waiting[0].n).toBe(2)
+  })
+})
+
+describe('adding an order from the shop', () => {
+  const ESTHER = '66666666-6666-6666-6666-666666666666'
+  const ORDER = 'f1000000-0000-4000-8000-000000000001'
+
+  it('stops with a clear message when the customer has no account', async () => {
+    await fails(db.exec(addOrderSql.replaceAll('esther.ngui254@gmail.com', 'nobody@example.com')), /No account found/i)
+  })
+
+  it('adds the collection order to the customer account with its first history entry', async () => {
+    await db.query("insert into auth.users (id, email, raw_user_meta_data) values ($1, 'esther.ngui254@gmail.com', $2)", [ESTHER, JSON.stringify({ name: 'Esther Ngui' })])
+    await db.exec(addOrderSql)
+
+    const [order] = await rows('select * from public.orders where id = $1', [ORDER])
+    expect(order).toMatchObject({
+      user_id: ESTHER,
+      fulfilment: 'collection',
+      status: 'placed',
+      subtotal_ksh: 550,
+      delivery_fee_ksh: 0,
+      total_ksh: 550,
+      payment: { method: 'cash' },
+      customer: { name: 'Esther Ngui', email: 'esther.ngui254@gmail.com' },
+    })
+    expect(order.address).toBeNull()
+    expect(order.items).toEqual([{ id: 'perlite', name: 'Perlite', detail: '2 L bag, keeps soil airy', priceKsh: 550, qty: 1 }])
+    expect(await rows('select status, note from public.order_events where order_id = $1 order by id', [ORDER]))
+      .toEqual([{ status: 'placed', note: 'We received your order' }])
+  })
+
+  it('runs again without duplicating the order or undoing the shop progress', async () => {
+    // The shop confirms it, the way docs/order-management.md describes.
+    await as('dashboard', () => db.query("update public.orders set status = 'confirmed', note = 'Paid, thank you' where id = $1", [ORDER]))
+    expect((await rows('select count(*)::int as n from public.order_events where order_id = $1', [ORDER]))[0].n).toBe(2)
+
+    await db.exec(addOrderSql)
+
+    expect((await rows('select count(*)::int as n from public.orders where id = $1', [ORDER]))[0].n).toBe(1)
+    const [order] = await rows('select status, note from public.orders where id = $1', [ORDER])
+    expect(order).toMatchObject({ status: 'confirmed', note: 'Paid, thank you' })
+    expect((await rows('select count(*)::int as n from public.order_events where order_id = $1', [ORDER]))[0].n).toBe(2)
+  })
+
+  it('is only visible to that customer', async () => {
+    expect((await as(ESTHER, () => rows('select count(*)::int as n from public.orders')))[0].n).toBe(1)
+    expect((await as(ESTHER, () => rows('select count(*)::int as n from public.order_events')))[0].n).toBe(2)
+    expect((await as(ALICE, () => rows('select count(*)::int as n from public.orders where id = $1', [ORDER])))[0].n).toBe(0)
+    expect((await as(ALICE, () => rows('select count(*)::int as n from public.order_events where order_id = $1', [ORDER])))[0].n).toBe(0)
+  })
+})
+
+describe('contact, updates and feedback', () => {
+  const NEWS_ID = '99999999-9999-4444-8888-999999999999'
+
+  it('sets up safely, twice, and lets the shop post an update others can read', async () => {
+    await db.exec(contactSql)
+    await db.exec(contactSql)
+    await as('dashboard', () => db.query(
+      "insert into public.news (id, title, body) values ($1, 'New arrivals', 'Fresh seedlings and herbs arrive every Saturday morning.')",
+      [NEWS_ID],
+    ))
+    const seen = await as(ALICE, () => rows('select title from public.news'))
+    expect(seen.map((row) => row.title)).toEqual(['New arrivals'])
+    await fails(as(ALICE, () => db.query("insert into public.news (title, body) values ('Hacked', 'Not allowed from the app.')")), /permission denied/i)
+  })
+
+  it('keeps messages and feedback between the writer and the shop', async () => {
+    await as(ALICE, () => db.query("insert into public.messages (subject, body) values ($1, $2)", ['Delivery question', 'Can I collect on Sunday morning?']))
+    await as(ALICE, () => db.query("insert into public.feedback (kind, rating, body) values ('review', 5, 'The monstera arrived healthy and beautifully packed.')"))
+
+    expect((await as(ALICE, () => rows('select count(*)::int as n from public.messages')))[0].n).toBe(1)
+    expect((await as(ALICE, () => rows('select count(*)::int as n from public.feedback')))[0].n).toBe(1)
+    expect((await as(BOB, () => rows('select count(*)::int as n from public.messages')))[0].n).toBe(0)
+    expect((await as(BOB, () => rows('select count(*)::int as n from public.feedback')))[0].n).toBe(0)
+
+    await fails(as('anon', () => rows('select count(*)::int as n from public.messages')), /permission denied/i)
+    await fails(as('anon', () => rows('select count(*)::int as n from public.news')), /permission denied/i)
+    await fails(as(ALICE, () => db.query("update public.messages set subject = 'Changed'")), /permission denied/i)
+    await fails(as(ALICE, () => db.query('delete from public.feedback')), /permission denied/i)
+  })
+
+  it('refuses feedback the app would not accept', async () => {
+    await fails(as(ALICE, () => db.query("insert into public.feedback (kind, rating, body) values ('rant', null, 'A kind that does not exist.')")), /kind_check/)
+    await fails(as(ALICE, () => db.query("insert into public.feedback (kind, rating, body) values ('review', null, 'A review without any rating.')")), /rating_check/)
+    await fails(as(ALICE, () => db.query("insert into public.feedback (kind, rating, body) values ('complaint', 4, 'A complaint should not carry one.')")), /rating_check/)
+    await fails(as(ALICE, () => db.query("insert into public.feedback (kind, rating, body) values ('compliment', null, 'Too short')")), /body_check/)
+    await fails(as(ALICE, () => db.query("insert into public.messages (subject, body) values ('A fine subject', 'Too short')")), /messages_body_check/)
+  })
+
+  it('removes messages and feedback with the account, and keeps the news', async () => {
+    const GONE = '88888888-8888-4444-8888-888888888888'
+    await db.query("insert into auth.users (id, email) values ($1, 'leaver@example.com')", [GONE])
+    await as(GONE, () => db.query("insert into public.messages (subject, body) values ('Bye for now', 'Please remove my details soon.')"))
+    await as(GONE, () => db.query("insert into public.feedback (kind, rating, body) values ('compliment', null, 'Lovely shop, thank you for everything.')"))
+    await as(GONE, () => db.query('select public.delete_my_account()'))
+    expect((await rows('select count(*)::int as n from public.messages where user_id = $1', [GONE]))[0].n).toBe(0)
+    expect((await rows('select count(*)::int as n from public.feedback where user_id = $1', [GONE]))[0].n).toBe(0)
+    expect((await rows('select count(*)::int as n from public.news'))[0].n).toBe(1)
   })
 })

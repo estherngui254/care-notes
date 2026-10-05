@@ -105,6 +105,13 @@ export const PhoneIcon = (props) => (
   </Icon>
 )
 
+// A mail icon for the contact section.
+export const MailIcon = (props) => (
+  <Icon {...props}>
+    <path d="M4 6.5h16v11H4zM4 7l8 6 8-6" />
+  </Icon>
+)
+
 export const QrIcon = (props) => (
   <Icon {...props}>
     <rect x="3.5" y="3.5" width="7" height="7" rx="1" />

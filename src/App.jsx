@@ -16,6 +16,7 @@ import PestGuide from './PestGuide.jsx'
 import PlantShop from './PlantShop.jsx'
 import QrShare from './QrShare.jsx'
 import PlantScanner from './PlantScanner.jsx'
+import ContactShop from './ContactShop.jsx'
 
 const UNDO_MS = 8000
 
@@ -183,6 +184,7 @@ function Workspace({ auth }) {
             <a href="#guide">Guide</a>
             <a href="#shop">Shop</a>
             <a href="#orders">Orders</a>
+            <a href="#contact">Contact</a>
             <a href="#share">Share</a>
             <a href="#backup">Backup</a>
           </nav>
@@ -329,6 +331,8 @@ function Workspace({ auth }) {
         <MyOrders orders={orderState.orders} status={orderState.status} detail={orderState.detail}
           refreshing={orderState.refreshing} checkedAt={orderState.checkedAt} onRefresh={orderState.refresh}
           onCancel={orderState.cancel} />
+
+        <ContactShop />
 
         <QrShare />
 

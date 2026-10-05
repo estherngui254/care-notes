@@ -21,6 +21,10 @@ function createFake() {
       orders: [], // rows of the orders table (snake_case, like the database)
       orderEvents: [],
       ordersMissing: false,
+      messages: [], // rows of the messages table (a customer writes to the shop)
+      feedback: [], // rows of the feedback table (review / complaint / compliment)
+      news: [], // rows of the news table (updates posted by the shop)
+      contactMissing: false,
       tick: 0,
       rateLimited: false,
       rpcError: null,
@@ -135,15 +139,52 @@ function createFake() {
         }
         return { data: data.map((row) => structuredClone(row)), error: null }
       }
+      // The contact tables, with the same rules as supabase/contact.sql: news is readable by
+      // anyone signed in and written only by the dashboard; messages and feedback are read and
+      // written only by the person they belong to.
+      function runContact(operation, owner, payload, filters, sortBy) {
+        const denied = { data: null, error: { code: '42501', message: `permission denied for table ${name}`, status: 401 } }
+        const sorted = (rows) => {
+          if (!sortBy) return rows
+          const { column, ascending } = sortBy
+          return [...rows].sort((a, b) => (a[column] < b[column] ? -1 : a[column] > b[column] ? 1 : 0) * (ascending ? 1 : -1))
+        }
+        if (!owner) return denied
+        if (name === 'news') {
+          if (operation !== 'select') return denied
+          const data = sorted(state.news.filter((row) => filters.every((test) => test(row))))
+          return { data: data.map((row) => structuredClone(row)), error: null }
+        }
+        if (operation === 'select') {
+          const mine = state[name].filter((row) => row.user_id === owner)
+          const data = sorted(mine.filter((row) => filters.every((test) => test(row))))
+          return { data: data.map((row) => structuredClone(row)), error: null }
+        }
+        if (operation === 'insert') {
+          for (const row of Array.isArray(payload) ? payload : [payload]) {
+            const stored = { id: crypto.randomUUID(), created_at: now(), user_id: owner, ...row }
+            if (stored.user_id !== owner) {
+              return { data: null, error: { code: '42501', message: 'new row violates row-level security policy' } }
+            }
+            state[name].push(stored)
+          }
+          return { data: null, error: null }
+        }
+        return denied
+      }
       async function run() {
         state.calls.push([operation, payload?.length ?? null])
         if (operation === 'select' && state.selectDelay) await new Promise((resolve) => setTimeout(resolve, state.selectDelay))
         if (state.offline) return { data: null, error: networkError() }
         const ordersTable = name === 'orders' || name === 'order_events'
+        const contactTable = name === 'news' || name === 'messages' || name === 'feedback'
         if (ordersTable && state.ordersMissing) {
           return { data: null, error: { code: 'PGRST205', message: `Could not find the table 'public.${name}' in the schema cache` } }
         }
-        if (!ordersTable && state.tableMissing) return { data: null, error: missingTable() }
+        if (contactTable && state.contactMissing) {
+          return { data: null, error: { code: 'PGRST205', message: `Could not find the table 'public.${name}' in the schema cache` } }
+        }
+        if (!ordersTable && !contactTable && state.tableMissing) return { data: null, error: missingTable() }
         if (ordersTable) return runOrders(state.session?.user.id)
         const owner = state.session?.user.id
         const writing = operation !== 'select'
@@ -151,6 +192,7 @@ function createFake() {
           state.failWrites -= 1
           return { data: null, error: { code: 'XX000', message: 'Something broke' } }
         }
+        if (contactTable) return runContact(operation, owner, payload, filters, sortBy)
         if (operation === 'select') {
           // Row Level Security: only the signed-in person's own rows are ever visible.
           const data = state.rows.filter((row) => row.user_id === owner).filter((row) => filters.every((test) => test(row)))
@@ -175,6 +217,7 @@ function createFake() {
     }
     return {
       select: () => make('select'),
+      insert: (row) => make('insert', row),
       upsert: (rows, options) => make('upsert', rows, options),
       delete: () => make('delete'),
     }
@@ -258,6 +301,8 @@ function createFake() {
         const gone = new Set(state.orders.filter((order) => order.user_id === id).map((order) => order.id))
         state.orders = state.orders.filter((order) => order.user_id !== id)
         state.orderEvents = state.orderEvents.filter((event) => !gone.has(event.order_id))
+        state.messages = state.messages.filter((row) => row.user_id !== id)
+        state.feedback = state.feedback.filter((row) => row.user_id !== id)
         saveSession(null)
         return { data: null, error: null }
       }

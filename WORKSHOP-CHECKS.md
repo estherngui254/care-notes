@@ -114,6 +114,15 @@ Run `supabase/orders.sql` in the Supabase SQL Editor first. The automated tests 
 | 61 | Privacy | Sign in as a second person. | You see none of the first person's orders. Directly editing an order from the browser is refused. | App.orders.test.jsx, sql.test.js | **manual** (two accounts) |
 | 62 | Find by code and phone view | Type a tracking code in **Find an order**. View **My orders** on a phone. | Only that order shows. On a phone the tracker runs down the page and nothing scrolls sideways. | App.orders.test.jsx | **manual** (phone) |
 | 63 | Orders not set up | Before running `orders.sql`, open **My orders** and try to place an order. | A message says orders are not set up and names `supabase/orders.sql`. Nothing breaks. | App.orders.test.jsx | |
+## Contact, updates and feedback
+
+| # | Check | Steps | Expected | Automated test | Result |
+|---|-------|-------|----------|----------------|--------|
+| 64 | Updates | Open **Contact** before and after posting an update in the Supabase dashboard (Table Editor → news). | Updates show newest first; with none it says so, and before `contact.sql` it names that file. | App.contact.test.jsx, sql.test.js | **manual** (real database) |
+| 65 | Message to the shop | Send a message; then submit the form empty. | Empty shows the two problems and sends nothing; a good one confirms, clears, and the row appears in the dashboard under messages with the account's email. | App.contact.test.jsx | **manual** (real database) |
+| 66 | Feedback | Send a review (a rating is asked for), a complaint and a compliment. | Only a review shows the rating; each confirms; all three appear in the dashboard under feedback. | App.contact.test.jsx, sql.test.js | **manual** (real database) |
+| 67 | Privacy | Sign in as a second person, and try signed out. | No one else's messages or feedback can be read, and nothing at all can be read or written while signed out. The app cannot write the news. | sql.test.js | |
+
 ## Main workflow run
 
 Add a plant, see it in the list, edit it, refresh to confirm it was saved, then delete it. All steps should work using only the visible controls.
