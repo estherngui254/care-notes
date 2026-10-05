@@ -24,6 +24,7 @@ function createFake() {
       messages: [], // rows of the messages table (a customer writes to the shop)
       feedback: [], // rows of the feedback table (review / complaint / compliment)
       news: [], // rows of the news table (updates posted by the shop)
+      messageReplies: [], // rows of the message_replies table (the shop's replies)
       contactMissing: false,
       tick: 0,
       rateLimited: false,
@@ -150,6 +151,14 @@ function createFake() {
           return [...rows].sort((a, b) => (a[column] < b[column] ? -1 : a[column] > b[column] ? 1 : 0) * (ascending ? 1 : -1))
         }
         if (!owner) return denied
+        if (name === 'message_replies') {
+          // Only the dashboard writes replies; a customer reads the ones to their own messages.
+          if (operation !== 'select') return denied
+          const mine = new Set(state.messages.filter((row) => row.user_id === owner).map((row) => row.id))
+          const mineReplies = state.messageReplies.filter((row) => mine.has(row.message_id))
+          const data = sorted(mineReplies.filter((row) => filters.every((test) => test(row))))
+          return { data: data.map((row) => structuredClone(row)), error: null }
+        }
         if (name === 'news') {
           if (operation !== 'select') return denied
           const data = sorted(state.news.filter((row) => filters.every((test) => test(row))))
@@ -177,7 +186,7 @@ function createFake() {
         if (operation === 'select' && state.selectDelay) await new Promise((resolve) => setTimeout(resolve, state.selectDelay))
         if (state.offline) return { data: null, error: networkError() }
         const ordersTable = name === 'orders' || name === 'order_events'
-        const contactTable = name === 'news' || name === 'messages' || name === 'feedback'
+        const contactTable = ['news', 'messages', 'message_replies', 'feedback'].includes(name)
         if (ordersTable && state.ordersMissing) {
           return { data: null, error: { code: 'PGRST205', message: `Could not find the table 'public.${name}' in the schema cache` } }
         }
@@ -301,7 +310,9 @@ function createFake() {
         const gone = new Set(state.orders.filter((order) => order.user_id === id).map((order) => order.id))
         state.orders = state.orders.filter((order) => order.user_id !== id)
         state.orderEvents = state.orderEvents.filter((event) => !gone.has(event.order_id))
+        const lostMessages = new Set(state.messages.filter((row) => row.user_id === id).map((row) => row.id))
         state.messages = state.messages.filter((row) => row.user_id !== id)
+        state.messageReplies = state.messageReplies.filter((row) => !lostMessages.has(row.message_id))
         state.feedback = state.feedback.filter((row) => row.user_id !== id)
         saveSession(null)
         return { data: null, error: null }

@@ -76,6 +76,30 @@ export async function fetchUpdates() {
   }
 }
 
+// The signed-in person's own messages, each with the shop's replies, newest first.
+export async function fetchMyMessages() {
+  try {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('id, subject, body, created_at')
+      .order('created_at', { ascending: false })
+    if (error) return { error: describeContactError(error) }
+    const mine = data ?? []
+    if (mine.length === 0) return { threads: [] }
+    const { data: replies, error: replyError } = await supabase
+      .from('message_replies')
+      .select('id, message_id, body, created_at')
+      .in('message_id', mine.map((message) => message.id))
+      .order('created_at', { ascending: true })
+    if (replyError) return { error: describeContactError(replyError) }
+    const byMessage = new Map()
+    for (const reply of replies ?? []) byMessage.set(reply.message_id, [...(byMessage.get(reply.message_id) ?? []), reply])
+    return { threads: mine.map((message) => ({ ...message, replies: byMessage.get(message.id) ?? [] })) }
+  } catch (error) {
+    return { error: describeContactError(error) }
+  }
+}
+
 export async function sendMessage({ subject, body }) {
   const errors = validateMessage({ subject, body })
   if (Object.keys(errors).length > 0) return { errors }

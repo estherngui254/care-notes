@@ -7,6 +7,8 @@
 -- Three tables:
 --   * messages  - a customer writes to the shop. Only the writer can read their own; the shop reads
 --                 everything in the Supabase dashboard (Table Editor -> messages).
+--   * message_replies - the shop's answer to a message. The dashboard writes it; the customer reads
+--                 the replies to their own messages.
 --   * feedback  - a review, complaint or compliment. Same privacy as messages (Table Editor ->
 --                 feedback). Reviews carry a rating from 1 to 5; the other kinds carry none.
 --   * news      - updates the shop posts. Every signed-in person can read them, and nobody can
@@ -26,6 +28,16 @@ create table if not exists public.messages (
 );
 
 create index if not exists messages_user_created on public.messages (user_id, created_at desc);
+
+-- The shop's reply to a customer's message. Only the dashboard writes this table.
+create table if not exists public.message_replies (
+  id         uuid        primary key default gen_random_uuid(),
+  message_id uuid        not null references public.messages (id) on delete cascade,
+  body       text        not null check (char_length(btrim(body)) between 2 and 3000),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists message_replies_message on public.message_replies (message_id, created_at);
 
 create table if not exists public.feedback (
   id         uuid        primary key default gen_random_uuid(),
@@ -56,13 +68,16 @@ create index if not exists news_created on public.news (created_at desc);
 -- ---------------------------------------------------------------------------------------------------
 
 alter table public.messages enable row level security;
+alter table public.message_replies enable row level security;
 alter table public.feedback enable row level security;
 alter table public.news enable row level security;
 
 revoke all on table public.messages from anon, authenticated;
+revoke all on table public.message_replies from anon, authenticated;
 revoke all on table public.feedback from anon, authenticated;
 revoke all on table public.news from anon, authenticated;
 grant select, insert on table public.messages to authenticated;
+grant select on table public.message_replies to authenticated;
 grant select, insert on table public.feedback to authenticated;
 grant select on table public.news to authenticated;
 
@@ -75,6 +90,15 @@ drop policy if exists "Add own messages" on public.messages;
 create policy "Add own messages" on public.messages
   for insert to authenticated
   with check ((select auth.uid()) = user_id);
+
+-- The shop writes replies from the dashboard; a customer reads only the replies to their own messages.
+drop policy if exists "Read replies to own messages" on public.message_replies;
+create policy "Read replies to own messages" on public.message_replies
+  for select to authenticated
+  using (exists (
+    select 1 from public.messages m
+    where m.id = public.message_replies.message_id and m.user_id = (select auth.uid())
+  ));
 
 drop policy if exists "Read own feedback" on public.feedback;
 create policy "Read own feedback" on public.feedback

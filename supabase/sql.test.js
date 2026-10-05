@@ -492,10 +492,26 @@ describe('contact, updates and feedback', () => {
     const GONE = '88888888-8888-4444-8888-888888888888'
     await db.query("insert into auth.users (id, email) values ($1, 'leaver@example.com')", [GONE])
     await as(GONE, () => db.query("insert into public.messages (subject, body) values ('Bye for now', 'Please remove my details soon.')"))
+    const [message] = await as(GONE, () => rows('select id from public.messages'))
+    await as('dashboard', () => db.query('insert into public.message_replies (message_id, body) values ($1, $2)', [message.id, 'Thanks for letting us know.']))
     await as(GONE, () => db.query("insert into public.feedback (kind, rating, body) values ('compliment', null, 'Lovely shop, thank you for everything.')"))
     await as(GONE, () => db.query('select public.delete_my_account()'))
     expect((await rows('select count(*)::int as n from public.messages where user_id = $1', [GONE]))[0].n).toBe(0)
     expect((await rows('select count(*)::int as n from public.feedback where user_id = $1', [GONE]))[0].n).toBe(0)
+    expect((await rows('select count(*)::int as n from public.message_replies where message_id = $1', [message.id]))[0].n).toBe(0)
     expect((await rows('select count(*)::int as n from public.news'))[0].n).toBe(1)
+  })
+
+  it('lets the shop reply, and shows the reply only to the writer', async () => {
+    const [message] = await as(ALICE, () => rows('select id from public.messages order by created_at desc limit 1'))
+    await as('dashboard', () => db.query('insert into public.message_replies (message_id, body) values ($1, $2)', [message.id, 'Hello, yes we are open on Sundays until 4 pm.']))
+    const mine = await as(ALICE, () => rows('select body from public.message_replies'))
+    expect(mine.map((row) => row.body)).toEqual(['Hello, yes we are open on Sundays until 4 pm.'])
+    expect((await as(BOB, () => rows('select count(*)::int as n from public.message_replies')))[0].n).toBe(0)
+    await fails(as('anon', () => rows('select count(*)::int as n from public.message_replies')), /permission denied/i)
+    await fails(as(ALICE, () => db.query("insert into public.message_replies (message_id, body) values ($1, 'Not allowed from the app.')", [message.id])), /permission denied/i)
+    // removing the message removes its replies
+    await as('dashboard', () => db.query('delete from public.messages where id = $1', [message.id]))
+    expect((await rows('select count(*)::int as n from public.message_replies where message_id = $1', [message.id]))[0].n).toBe(0)
   })
 })

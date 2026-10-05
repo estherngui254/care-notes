@@ -122,6 +122,7 @@ Run `supabase/orders.sql` in the Supabase SQL Editor first. The automated tests 
 | 65 | Message to the shop | Send a message; then submit the form empty. | Empty shows the two problems and sends nothing; a good one confirms, clears, and the row appears in the dashboard under messages with the account's email. | App.contact.test.jsx | **manual** (real database) |
 | 66 | Feedback | Send a review (a rating is asked for), a complaint and a compliment. | Only a review shows the rating; each confirms; all three appear in the dashboard under feedback. | App.contact.test.jsx, sql.test.js | **manual** (real database) |
 | 67 | Privacy | Sign in as a second person, and try signed out. | No one else's messages or feedback can be read, and nothing at all can be read or written while signed out. The app cannot write the news. | sql.test.js | |
+| 68 | Replies | With a message sent, add a reply in the dashboard (message_replies → Insert row, with the message's id), then press **Check for replies**. | The reply appears under the message in the app, and another person's messages and replies stay hidden. | App.contact.test.jsx, sql.test.js | **manual** (real database) |
 
 ## Main workflow run
 

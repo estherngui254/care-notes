@@ -695,6 +695,15 @@ a.button-link:hover { filter: brightness(1.06); }
 .news-item h4 { margin: 0 0 2px; font-size: 1rem; color: var(--heading); }
 .news-date { margin: 0 0 6px; font-size: .78rem; color: var(--muted); }
 .news-item p:last-child { margin-bottom: 0; }
+.contact-history { margin-top: 18px; }
+.thread-list { list-style: none; margin: 0; padding: 0; }
+.thread { padding: 14px 0; border-top: 1px dashed var(--line); }
+.thread:first-child { border-top: 0; padding-top: 0; }
+.thread h4 { margin: 0 0 2px; font-size: 1rem; color: var(--heading); }
+.thread-date { margin: 0 0 6px; font-size: .78rem; color: var(--muted); }
+.thread-body { margin: 0 0 8px; }
+.thread-reply { margin: 8px 0 0; padding: 10px 14px; border-left: 3px solid var(--leaf); background: var(--surface-2); border-radius: 0 12px 12px 0; }
+.thread-reply p:last-child { margin-bottom: 0; }
 
 /* ---------- Print: a plain care sheet ---------- */
 @media print {

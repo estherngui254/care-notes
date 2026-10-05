@@ -6,6 +6,7 @@ The **Contact** section of the app (set up by `supabase/contact.sql`) has three 
 |---|---|---|---|
 | Reads the shop's updates | `news` | Everyone signed in | Only the Supabase dashboard |
 | Writes a message to the shop | `messages` | The writer, and the dashboard | The writer (from the app), the dashboard |
+| Reads the shop's replies to their messages | `message_replies` | The writer, and the dashboard | Only the Supabase dashboard |
 | Leaves a review, complaint or compliment | `feedback` | The writer, and the dashboard | The writer (from the app), the dashboard |
 
 Nothing a customer writes is shown to any other customer: Row Level Security keeps each person's
@@ -36,6 +37,22 @@ order by f.created_at desc;
 There is no "mark as read" and customers cannot edit or delete what they sent, so the tables are a
 faithful record. Deleting an entry = deleting its row here. Deleting the account (**Delete
 account** in the app) removes that person's messages and feedback with it.
+
+## Replying to a customer
+
+Only the shop can reply, and only the customer the message belongs to can read the reply.
+**Table Editor → message_replies → Insert row**: `message_id` (copy it from the `messages` table)
+and `body`. Or from the SQL Editor:
+
+```sql
+insert into public.message_replies (message_id, body)
+select id, 'Hello, yes we are open on Sundays until 4 pm.'
+from public.messages
+where subject = 'Delivery question';
+```
+
+The customer sees the reply under their own message when they open **Contact**, or after pressing
+**Check for replies**. Deleting a message in the dashboard deletes its replies with it.
 
 ## Posting an update (the news board)
 

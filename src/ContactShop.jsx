@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  FEEDBACK_KINDS, fetchUpdates, sendFeedback, sendMessage, validateFeedback, validateMessage,
+  FEEDBACK_KINDS, fetchMyMessages, fetchUpdates, sendFeedback, sendMessage, validateFeedback, validateMessage,
 } from './contact.js'
 import { formatDateTime } from './orderStatus.js'
 import { MailIcon } from './icons.jsx'
@@ -13,6 +13,9 @@ export default function ContactShop() {
   const [updates, setUpdates] = useState([])
   const [newsStatus, setNewsStatus] = useState('loading')
   const [newsError, setNewsError] = useState('')
+  const [threads, setThreads] = useState([])
+  const [mineStatus, setMineStatus] = useState('loading')
+  const [mineError, setMineError] = useState('')
 
   const [subject, setSubject] = useState('')
   const [messageBody, setMessageBody] = useState('')
@@ -41,8 +44,21 @@ export default function ContactShop() {
         setNewsStatus('ready')
       }
     })
+    loadMessages()
     return () => { active = false }
   }, [])
+
+  // The person's own messages, each with the shop's replies.
+  async function loadMessages() {
+    const result = await fetchMyMessages()
+    if (result.error) {
+      setMineError(result.error.text)
+      setMineStatus('error')
+    } else {
+      setThreads(result.threads)
+      setMineStatus('ready')
+    }
+  }
 
   function changeSubject(event) {
     setSubject(event.target.value)
@@ -86,6 +102,7 @@ export default function ContactShop() {
       setSubject('')
       setMessageBody('')
       setMessageSent('Your message has been sent to the shop.')
+      await loadMessages()
     }
   }
 
@@ -214,6 +231,40 @@ export default function ContactShop() {
             {feedbackSent && <p className="hint" role="status">{feedbackSent}</p>}
           </form>
         </div>
+      </div>
+
+      <div className="panel contact-history">
+        <div className="section-heading">
+          <div>
+            <h3>Your messages and the shop&apos;s replies</h3>
+          </div>
+          {threads.length > 0 && (
+            <button type="button" className="secondary" onClick={loadMessages}>Check for replies</button>
+          )}
+        </div>
+        {mineStatus === 'loading' && <p className="hint" role="status">Loading your messages…</p>}
+        {mineStatus === 'error' && <p className="error" role="alert">{mineError}</p>}
+        {mineStatus === 'ready' && threads.length === 0 && (
+          <p className="hint">Nothing sent yet. Anything you write appears here, with the shop&apos;s reply.</p>
+        )}
+        {threads.length > 0 && (
+          <ul className="thread-list">
+            {threads.map((thread) => (
+              <li className="thread" key={thread.id}>
+                <h4>{thread.subject}</h4>
+                <p className="thread-date">You wrote this on {formatDateTime(thread.created_at)}</p>
+                <p className="thread-body">{thread.body}</p>
+                {thread.replies.length === 0 && <p className="hint">No reply from the shop yet.</p>}
+                {thread.replies.map((reply) => (
+                  <blockquote className="thread-reply" key={reply.id}>
+                    <p className="thread-date">Reply from the shop, {formatDateTime(reply.created_at)}</p>
+                    <p>{reply.body}</p>
+                  </blockquote>
+                ))}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </section>
   )

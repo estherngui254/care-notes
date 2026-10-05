@@ -9,6 +9,15 @@ const contact = () => within(screen.getByRole('region', { name: /contact, update
 const me = () => fakeSupabase.state.users[0]
 const postUpdate = (title, body) =>
   fakeSupabase.state.news.push({ id: crypto.randomUUID(), title, body, created_at: '2026-10-01T09:00:00.000Z' })
+const myMessage = (subject, body) => {
+  const message = { id: crypto.randomUUID(), user_id: me().id, subject, body, created_at: '2026-10-02T10:00:00.000Z' }
+  fakeSupabase.state.messages.push(message)
+  return message
+}
+const shopReply = (message, body) =>
+  fakeSupabase.state.messageReplies.push({
+    id: crypto.randomUUID(), message_id: message.id, body, created_at: '2026-10-03T09:30:00.000Z',
+  })
 
 describe('the contact section', () => {
   it('is in the navigation and reads the shop updates', async () => {
@@ -29,11 +38,12 @@ describe('the contact section', () => {
   it('names supabase/contact.sql when it is not set up', async () => {
     fakeSupabase.state.contactMissing = true
     const { user } = setup()
-    await screen.findByText(/supabase\/contact\.sql/i)
+    // one for the updates and one for the message list
+    expect(await screen.findAllByText(/supabase\/contact\.sql/i)).toHaveLength(2)
     await user.type(contact().getByLabelText('Subject'), 'Delivery question')
     await user.type(contact().getByLabelText('Your message'), 'Can I collect on Sunday morning?')
     await user.click(contact().getByRole('button', { name: 'Send message' }))
-    expect(contact().getAllByText(/supabase\/contact\.sql/i)).toHaveLength(2)
+    expect(contact().getAllByText(/supabase\/contact\.sql/i)).toHaveLength(3)
     expect(fakeSupabase.state.messages).toEqual([])
   })
 
@@ -57,6 +67,29 @@ describe('the contact section', () => {
       subject: 'Delivery question', body: 'Can I collect on Sunday morning?', user_id: me().id,
     })
     expect(contact().getByLabelText('Subject')).toHaveValue('')
+    // the sent message joins the list under "Your messages"
+    expect(await screen.findByRole('heading', { name: 'Delivery question' })).toBeInTheDocument()
+  })
+
+  it('shows my messages with the shop replies', async () => {
+    const answered = myMessage('Delivery question', 'Can I collect on Sunday morning?')
+    shopReply(answered, 'Yes, we are open on Sundays until 4 pm.')
+    myMessage('About the perlite', 'How much perlite does a 20 cm pot need?')
+    setup()
+    expect(await screen.findByRole('heading', { name: 'Delivery question' })).toBeInTheDocument()
+    expect(screen.getByText('Yes, we are open on Sundays until 4 pm.')).toBeInTheDocument()
+    expect(screen.getByText(/Reply from the shop,/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'About the perlite' })).toBeInTheDocument()
+    expect(screen.getByText('No reply from the shop yet.')).toBeInTheDocument()
+  })
+
+  it('checks for a new reply from the shop', async () => {
+    const message = myMessage('Delivery question', 'Can I collect on Sunday morning?')
+    const { user } = setup()
+    await screen.findByText('No reply from the shop yet.')
+    shopReply(message, 'Yes, we are open on Sundays until 4 pm.')
+    await user.click(contact().getByRole('button', { name: 'Check for replies' }))
+    expect(await screen.findByText('Yes, we are open on Sundays until 4 pm.')).toBeInTheDocument()
   })
 
   it('asks for a rating only for a review', async () => {
