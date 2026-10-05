@@ -16,6 +16,7 @@ export default function ContactShop() {
   const [threads, setThreads] = useState([])
   const [mineStatus, setMineStatus] = useState('loading')
   const [mineError, setMineError] = useState('')
+  const [messagesOpen, setMessagesOpen] = useState(false)
 
   const [subject, setSubject] = useState('')
   const [messageBody, setMessageBody] = useState('')
@@ -102,6 +103,7 @@ export default function ContactShop() {
       setSubject('')
       setMessageBody('')
       setMessageSent('Your message has been sent to the shop.')
+      setMessagesOpen(true)
       await loadMessages()
     }
   }
@@ -137,37 +139,43 @@ export default function ContactShop() {
       <p className="hint">Messages and feedback are seen only by the shop.</p>
 
       <div className="contact-sections">
-        <div className="panel">
-          <h3>Your messages</h3>
-          {mineStatus === 'loading' && <p className="hint" role="status">Loading your messages…</p>}
-          {mineStatus === 'error' && <p className="error" role="alert">{mineError}</p>}
-          {mineStatus === 'ready' && threads.length === 0 && (
-            <p className="hint">You have not sent any messages yet.</p>
-          )}
-          {threads.length > 0 && (
-            <ul className="thread-list">
-              {threads.map((thread) => (
-                <li className="thread" key={thread.id}>
-                  <h4>{thread.subject}</h4>
-                  <p className="thread-date">You wrote this on {formatDateTime(thread.created_at)}</p>
-                  <p className="thread-body">{thread.body}</p>
-                  {thread.replies.length === 0 && <p className="hint">No reply from the shop yet.</p>}
-                  {thread.replies.map((reply) => (
-                    <blockquote className="thread-reply" key={reply.id}>
-                      <p className="thread-date">Reply from the shop, {formatDateTime(reply.created_at)}</p>
-                      <p>{reply.body}</p>
-                    </blockquote>
-                  ))}
-                </li>
-              ))}
-            </ul>
-          )}
-          {threads.length > 0 && (
-            <div className="actions">
-              <button type="button" className="secondary" onClick={loadMessages}>Check for replies</button>
-            </div>
-          )}
-        </div>
+        <details className="panel contact-messages" open={messagesOpen}
+          onToggle={(event) => setMessagesOpen(event.currentTarget.open)}>
+          <summary className="block-summary">
+            Your messages
+            {threads.length > 0 && <span className="block-count">{threads.length}</span>}
+          </summary>
+          <div className="block-body">
+            {mineStatus === 'loading' && <p className="hint" role="status">Loading your messages…</p>}
+            {mineStatus === 'error' && <p className="error" role="alert">{mineError}</p>}
+            {mineStatus === 'ready' && threads.length === 0 && (
+              <p className="hint">You have not sent any messages yet.</p>
+            )}
+            {threads.length > 0 && (
+              <ul className="thread-list">
+                {threads.map((thread) => (
+                  <li className="thread" key={thread.id}>
+                    <h4>{thread.subject}</h4>
+                    <p className="thread-date">You wrote this on {formatDateTime(thread.created_at)}</p>
+                    <p className="thread-body">{thread.body}</p>
+                    {thread.replies.length === 0 && <p className="hint">No reply from the shop yet.</p>}
+                    {thread.replies.map((reply) => (
+                      <blockquote className="thread-reply" key={reply.id}>
+                        <p className="thread-date">Reply from the shop, {formatDateTime(reply.created_at)}</p>
+                        <p>{reply.body}</p>
+                      </blockquote>
+                    ))}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {threads.length > 0 && (
+              <div className="actions">
+                <button type="button" className="secondary" onClick={loadMessages}>Check for replies</button>
+              </div>
+            )}
+          </div>
+        </details>
 
         <div className="panel">
           <h3>Write a message</h3>
@@ -197,7 +205,7 @@ export default function ContactShop() {
 <details className="panel contact-updates">
           <summary>
             Updates from the shop
-            {updates.length > 0 && <span className="updates-count">{updates.length}</span>}
+            {updates.length > 0 && <span className="block-count">{updates.length}</span>}
           </summary>
           <div className="updates-body">
             {newsStatus === 'loading' && <p className="hint" role="status">Loading updates…</p>}

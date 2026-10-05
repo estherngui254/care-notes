@@ -702,7 +702,7 @@ a.button-link:hover { filter: brightness(1.06); }
   transform: rotate(45deg); transition: transform .2s;
 }
 .contact-updates[open] > summary::after { transform: rotate(225deg); }
-.updates-count { margin-left: auto; font-size: .8rem; font-weight: 600; color: var(--muted); }
+.block-count { margin-left: auto; font-size: .8rem; font-weight: 600; color: var(--muted); }
 .updates-body { padding: 0 26px 20px; }
 
 /* Collapsed sections (identify, guide, share, orders) share one summary look. */

@@ -77,7 +77,8 @@ describe('the contact section', () => {
     const answered = myMessage('Delivery question', 'Can I collect on Sunday morning?')
     shopReply(answered, 'Yes, we are open on Sundays until 4 pm.')
     myMessage('About the perlite', 'How much perlite does a 20 cm pot need?')
-    setup()
+    const { user } = setup()
+    await user.click(contact().getByText(/Your messages/))
     expect(await screen.findByRole('heading', { name: 'Delivery question' })).toBeInTheDocument()
     expect(screen.getByText('Yes, we are open on Sundays until 4 pm.')).toBeInTheDocument()
     expect(screen.getByText(/Reply from the shop,/)).toBeInTheDocument()
@@ -88,6 +89,7 @@ describe('the contact section', () => {
   it('checks for a new reply from the shop', async () => {
     const message = myMessage('Delivery question', 'Can I collect on Sunday morning?')
     const { user } = setup()
+    await user.click(contact().getByText(/Your messages/))
     await screen.findByText('No reply from the shop yet.')
     shopReply(message, 'Yes, we are open on Sundays until 4 pm.')
     await user.click(contact().getByRole('button', { name: 'Check for replies' }))

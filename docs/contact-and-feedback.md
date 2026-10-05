@@ -59,8 +59,7 @@ insert into public.message_replies (message_id, body)
 values ('the-id-from-the-list', 'Hello, yes we are open on Sundays until 4 pm.');
 ```
 
-The customer sees the reply under their own message when they open **Contact**, or after pressing
-**Check for replies**. Deleting a message in the dashboard deletes its replies with it.
+The customer sees the reply under their own message when they open **Contact → Your messages**, or after pressing **Check for replies**. Deleting a message in the dashboard deletes its replies with it.
 
 ## Posting an update (the news board)
 
