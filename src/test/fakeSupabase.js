@@ -25,6 +25,8 @@ function createFake() {
       feedback: [], // rows of the feedback table (review / complaint / compliment)
       news: [], // rows of the news table (updates posted by the shop)
       messageReplies: [], // rows of the message_replies table (the shop's replies)
+      shopStock: [], // rows of the shop_stock table (item_id -> in_stock, note)
+      stockMissing: false,
       contactMissing: false,
       tick: 0,
       rateLimited: false,
@@ -181,16 +183,28 @@ function createFake() {
         }
         return denied
       }
+      // Like supabase/shop-stock.sql: anyone signed in reads the shop's flags, and only the
+      // dashboard changes them. An item with no row is in stock.
+      function runStock(operation, owner, filters) {
+        const denied = { data: null, error: { code: '42501', message: 'permission denied for table shop_stock', status: 401 } }
+        if (operation !== 'select' || !owner) return denied
+        const data = state.shopStock.filter((row) => filters.every((test) => test(row)))
+        return { data: data.map((row) => structuredClone(row)), error: null }
+      }
       async function run() {
         state.calls.push([operation, payload?.length ?? null])
         if (operation === 'select' && state.selectDelay) await new Promise((resolve) => setTimeout(resolve, state.selectDelay))
         if (state.offline) return { data: null, error: networkError() }
         const ordersTable = name === 'orders' || name === 'order_events'
         const contactTable = ['news', 'messages', 'message_replies', 'feedback'].includes(name)
+        const stockTable = name === 'shop_stock'
         if (ordersTable && state.ordersMissing) {
           return { data: null, error: { code: 'PGRST205', message: `Could not find the table 'public.${name}' in the schema cache` } }
         }
         if (contactTable && state.contactMissing) {
+          return { data: null, error: { code: 'PGRST205', message: `Could not find the table 'public.${name}' in the schema cache` } }
+        }
+        if (stockTable && state.stockMissing) {
           return { data: null, error: { code: 'PGRST205', message: `Could not find the table 'public.${name}' in the schema cache` } }
         }
         if (!ordersTable && !contactTable && state.tableMissing) return { data: null, error: missingTable() }
@@ -202,6 +216,7 @@ function createFake() {
           return { data: null, error: { code: 'XX000', message: 'Something broke' } }
         }
         if (contactTable) return runContact(operation, owner, payload, filters, sortBy)
+        if (stockTable) return runStock(operation, owner, filters)
         if (operation === 'select') {
           // Row Level Security: only the signed-in person's own rows are ever visible.
           const data = state.rows.filter((row) => row.user_id === owner).filter((row) => filters.every((test) => test(row)))
@@ -350,6 +365,14 @@ function createFake() {
     },
     ordersFor(userId) {
       return state.orders.filter((order) => order.user_id === userId)
+    },
+    // What the shop does in the dashboard: flag an item as out of stock (or back in stock).
+    setStock(itemId, inStock, note = '') {
+      const row = { item_id: itemId, in_stock: inStock, note, updated_at: now() }
+      const index = state.shopStock.findIndex((existing) => existing.item_id === itemId)
+      if (index >= 0) state.shopStock[index] = row
+      else state.shopStock.push(row)
+      return row
     },
     // What the shop does in the Supabase dashboard: change an order, and the trigger writes the history.
     updateOrder(code, changes) {

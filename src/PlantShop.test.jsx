@@ -1,8 +1,9 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import PlantShop from './PlantShop.jsx'
 import App from './App.jsx'
+import { fakeSupabase } from './test/fakeSupabase.js'
 import { MPESA, SHOP_CATEGORIES, SHOP_ITEMS, formatKsh, formatUsd, usdFromKsh } from './shopItems.js'
 
 function groups() {
@@ -163,5 +164,75 @@ describe('PlantShop', () => {
     render(<App />)
     expect(screen.getByRole('link', { name: 'Shop' })).toHaveAttribute('href', '#shop')
     expect(screen.getByRole('region', { name: /buy plants, media and pots/i })).toBeInTheDocument()
+  })
+
+  it('shows an item the shop flagged as out of stock, with its note, and will not add it', async () => {
+    fakeSupabase.setStock('monstera', false, 'Back on Friday')
+    const user = userEvent.setup({ applyAccept: false })
+    render(<PlantShop />)
+
+    const row = await within(document.querySelector('.shop-groups')).findByRole('rowheader', { name: /Monstera/ })
+      .then((cell) => cell.closest('tr'))
+    expect(within(row).getByText('Out of stock')).toBeInTheDocument()
+    expect(within(row).getByText('Back on Friday')).toBeInTheDocument()
+    expect(within(row).queryByRole('button', { name: /add monstera to basket/i })).not.toBeInTheDocument()
+
+    // everything else is untouched
+    expect(within(rowFor('Snake Plant')).getByRole('button', { name: 'Add Snake Plant to basket' })).toBeEnabled()
+    await user.click(within(rowFor('Snake Plant')).getByRole('button', { name: 'Add Snake Plant to basket' }))
+    expect(screen.getByRole('region', { name: /your basket/i })).toBeInTheDocument()
+  })
+
+  it('puts an item back on sale when the shop flags it in stock again', async () => {
+    fakeSupabase.setStock('peace-lily', false)
+    const user = userEvent.setup({ applyAccept: false })
+    render(<PlantShop />)
+    await within(document.querySelector('.shop-groups')).findByRole('rowheader', { name: /Peace Lily/ })
+    expect(within(rowFor('Peace Lily')).getByText('Out of stock')).toBeInTheDocument()
+    expect(within(rowFor('Peace Lily')).getByText('Ask the shop')).toBeInTheDocument()
+
+    // The shop has more Peace Lilies. Stock can change while the page is open, so "Check stock"
+    // picks it up without a reload, and the item can be added again.
+    fakeSupabase.setStock('peace-lily', true)
+    expect(within(rowFor('Peace Lily')).getByText('Out of stock')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Check stock' }))
+    await waitFor(() => expect(within(rowFor('Peace Lily')).queryByText('Out of stock')).not.toBeInTheDocument())
+    const row = rowFor('Peace Lily')
+    expect(within(row).getByRole('button', { name: 'Add Peace Lily to basket' })).toBeEnabled()
+    await user.click(within(row).getByRole('button', { name: 'Add Peace Lily to basket' }))
+    await user.click(screen.getByRole('button', { name: 'Checkout' }))
+    expect(screen.getByRole('form', { name: 'Checkout' })).toBeInTheDocument()
+  })
+
+  it('will not let an order be placed when something in the basket went out of stock', async () => {
+    const user = userEvent.setup({ applyAccept: false })
+    render(<PlantShop />)
+    await user.click(within(rowFor('Moth Orchid')).getByRole('button', { name: 'Add Moth Orchid to basket' }))
+    expect(screen.getByRole('button', { name: 'Checkout' })).toBeInTheDocument()
+
+    // the shop sells the last one while this basket is open
+    fakeSupabase.setStock('moth-orchid', false, 'Sold out for now')
+    await user.click(screen.getByRole('button', { name: 'Checkout' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Moth Orchid is out of stock')
+    expect(screen.queryByRole('form', { name: 'Checkout' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Checkout' })).not.toBeInTheDocument()
+
+    // removing it clears the way again
+    await user.click(screen.getByRole('button', { name: 'Remove Moth Orchid from basket' }))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('keeps the shop usable, with a quiet note, before the stock table is set up', async () => {
+    fakeSupabase.state.stockMissing = true
+    const user = userEvent.setup({ applyAccept: false })
+    render(<PlantShop />)
+
+    expect(await screen.findByText(/supabase\/shop-stock\.sql/)).toBeInTheDocument()
+    expect(rowHeaders()).toHaveLength(SHOP_ITEMS.length)
+    await user.click(within(rowFor('Calathea')).getByRole('button', { name: 'Add Calathea to basket' }))
+    expect(screen.getByRole('region', { name: /your basket/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Checkout' })).toBeInTheDocument()
   })
 })

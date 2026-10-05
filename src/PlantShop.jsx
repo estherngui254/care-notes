@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { BagIcon } from './icons.jsx'
 import CheckoutForm from './CheckoutForm.jsx'
 import { MPESA, SHOP_CATEGORIES, SHOP_ITEMS, formatKsh, formatUsd, usdFromKsh } from './shopItems.js'
+import { fetchOutOfStock } from './shopStock.js'
 
 const ALL = 'all'
 
@@ -17,6 +18,10 @@ export default function PlantShop({ person, onPlaceOrder }) {
   const [checkingOut, setCheckingOut] = useState(false)
   const [placedOrder, setPlacedOrder] = useState(null)
   const [openGroups, setOpenGroups] = useState(() => new Set())
+  // What the shop has flagged as out of stock: item id -> its note. Empty until the table answers.
+  const [outOfStock, setOutOfStock] = useState(() => new Map())
+  const [stockProblem, setStockProblem] = useState('')
+  const [stockCheckedAt, setStockCheckedAt] = useState(0)
 
   const filtering = query.trim() !== '' || category !== ALL
 
@@ -41,10 +46,26 @@ export default function PlantShop({ person, onPlaceOrder }) {
     })
   }, [filtering, items])
 
-  const lines = SHOP_ITEMS
+  // Ask the shop's stock table which items are unavailable. Shown quietly if it is not set up:
+  // a missing table must not stop people buying what is in stock.
+  async function loadStock() {
+    const result = await fetchOutOfStock()
+    if (result.error) {
+      setStockProblem(result.error.text)
+      return
+    }
+    setOutOfStock(result.outOfStock)
+    setStockCheckedAt(Date.now())
+  }
+
+  useEffect(() => { loadStock() }, [])
+
+const lines = SHOP_ITEMS
     .filter((item) => basket[item.id] > 0)
     .map((item) => ({ ...item, qty: basket[item.id] }))
   const basketCount = lines.reduce((total, line) => total + line.qty, 0)
+  // Anything the shop has flagged since it was added stops the order being placed.
+  const unavailable = lines.filter((line) => outOfStock.has(line.id))
   const totalKsh = lines.reduce((total, line) => total + line.priceKsh * line.qty, 0)
   const totalUsd = usdFromKsh(totalKsh)
 
@@ -92,8 +113,20 @@ export default function PlantShop({ person, onPlaceOrder }) {
     setCheckingOut(false)
   }
 
-  // With nothing left in the basket there is nothing to check out.
-  const showCheckout = checkingOut && lines.length > 0
+  // With nothing left in the basket, or with something unavailable in it, there is nothing to check out.
+  const showCheckout = checkingOut && lines.length > 0 && unavailable.length === 0
+
+  // The shop can sell the last one while this page is open, so stock is checked again on demand and
+  // at the moment of ordering.
+  async function refreshStock() {
+    await loadStock()
+  }
+
+  async function startCheckout() {
+    setPlacedOrder(null)
+    await loadStock()
+    setCheckingOut(true)
+  }
 
   return (
     <section className="shop no-print" id="shop" aria-labelledby="shop-heading">
@@ -122,6 +155,9 @@ export default function PlantShop({ person, onPlaceOrder }) {
         {filtering && (
           <button type="button" className="secondary control-clear" onClick={clearFilters}>Clear filters</button>
         )}
+        {stockCheckedAt && (
+          <button type="button" className="secondary control-clear" onClick={refreshStock}>Check stock</button>
+        )}
       </div>
 
       <p className="guide-count" aria-live="polite">
@@ -129,6 +165,8 @@ export default function PlantShop({ person, onPlaceOrder }) {
           ? `Showing ${items.length} of ${SHOP_ITEMS.length} items`
           : `${SHOP_ITEMS.length} items for sale`}
       </p>
+
+      {stockProblem && <p className="hint">{stockProblem}</p>}
 
       {lines.length > 0 && (
         <div className="basket" role="region" aria-labelledby="basket-heading">
@@ -164,9 +202,16 @@ export default function PlantShop({ person, onPlaceOrder }) {
             Pay with <strong>{MPESA.provider}</strong> — {MPESA.method} till{' '}
             <strong className="till">{MPESA.till}</strong>, or cash on collection or delivery.
           </p>
-          {!showCheckout && (
+          {unavailable.length > 0 && (
+            <p className="error" role="alert">
+              {unavailable.length === 1 ? unavailable[0].name : unavailable.map((line) => line.name).join(' and ')}{' '}
+              {unavailable.length === 1 ? 'is' : 'are'} out of stock. Please remove{' '}
+              {unavailable.length === 1 ? 'it' : 'them'} from your basket.
+            </p>
+          )}
+          {!showCheckout && unavailable.length === 0 && (
             <div className="actions">
-              <button type="button" onClick={() => { setPlacedOrder(null); setCheckingOut(true) }}>Checkout</button>
+              <button type="button" onClick={startCheckout}>Checkout</button>
             </div>
           )}
           {showCheckout && (
@@ -233,20 +278,29 @@ export default function PlantShop({ person, onPlaceOrder }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {groupItems.map((item) => (
-                        <tr key={item.id}>
-                          <th scope="row" className="shop-item">
-                            {item.name} <span className="kind">{categoryLabel(item.category)}</span>
-                          </th>
-                          <td className="shop-detail">{item.detail}</td>
-                          <td className="num shop-ksh">{formatKsh(item.priceKsh)}</td>
-                          <td className="num shop-usd">{formatUsd(usdFromKsh(item.priceKsh))}</td>
-                          <td className="num shop-action">
-                            <button type="button" className="secondary" onClick={() => addItem(item.id)}
-                              aria-label={`Add ${item.name} to basket`}>Add to basket</button>
-                          </td>
-                        </tr>
-                      ))}
+                      {groupItems.map((item) => {
+                        const note = outOfStock.get(item.id)
+                        const sold = outOfStock.has(item.id)
+                        return (
+                          <tr key={item.id}>
+                            <th scope="row" className="shop-item">
+                              {item.name} <span className="kind">{categoryLabel(item.category)}</span>
+                              {sold && <span className="stock-flag">Out of stock</span>}
+                            </th>
+                            <td className="shop-detail">{item.detail}</td>
+                            <td className="num shop-ksh">{formatKsh(item.priceKsh)}</td>
+                            <td className="num shop-usd">{formatUsd(usdFromKsh(item.priceKsh))}</td>
+                            <td className="num shop-action">
+                              {sold ? (
+                                <span className="stock-note">{note || 'Ask the shop'}</span>
+                              ) : (
+                                <button type="button" className="secondary" onClick={() => addItem(item.id)}
+                                  aria-label={`Add ${item.name} to basket`}>Add to basket</button>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>

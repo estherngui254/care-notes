@@ -6,7 +6,7 @@ or price. Only someone signed in to your Supabase dashboard can.
 
 ## One-time setup
 
-1. Run `supabase/schema.sql`, then `supabase/orders.sql`, in the Supabase **SQL Editor**.
+1. Run `supabase/schema.sql`, then `supabase/orders.sql`, then `supabase/shop-stock.sql`, in the Supabase **SQL Editor**.
 2. Replace the sample values in `src/shopItems.js`: the M-PESA till number, the delivery areas and fees, and the
    shop address and opening hours for collection.
 
@@ -102,6 +102,35 @@ update public.orders
    set status = 'cancelled', note = 'Out of stock. We will refund your M-PESA payment'
  where tracking_code = 'PCN-K7M2XQ';
 ```
+
+## Marking an item out of stock
+
+When you have sold the last of something, flag it so nobody orders it by mistake. Run
+`supabase/shop-stock.sql` once in the SQL Editor, then edit **Table Editor → shop_stock**.
+
+An item with **no row** is in stock, so the table only holds what you have flagged. The `item_id`
+is the item's id from `src/shopItems.js` (`monstera`, `snake-plant`, `peace-lily`, `perlite`,
+`terracotta-pot`, …). Set `in_stock` to `false`; `note` is optional and shown to the customer.
+
+```sql
+-- Flag one item as sold out, with a note for the customer
+insert into public.shop_stock (item_id, in_stock, note)
+values ('monstera', false, 'Back on Friday')
+on conflict (item_id) do update set in_stock = excluded.in_stock, note = excluded.note,
+                                  updated_at = now();
+
+-- Back in stock (or delete the row: no row means in stock)
+update public.shop_stock set in_stock = true, note = null where item_id = 'monstera';
+delete from public.shop_stock where item_id = 'monstera';
+
+-- What is currently unavailable
+select item_id, note, updated_at from public.shop_stock where in_stock = false order by updated_at desc;
+```
+
+In the app the item shows an **Out of stock** label, its **Add to basket** button disappears, and
+checkout stops with an explanation if it is already in someone's basket. Customers can press
+**Check stock** to see the latest, and stock is checked again when they start an order. Nobody can
+change this table from the app.
 
 ## How quickly customers see changes
 

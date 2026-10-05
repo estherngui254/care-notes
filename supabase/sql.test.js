@@ -17,6 +17,7 @@ const seedSql = readFileSync(new URL('./seed.sql', import.meta.url), 'utf8')
 const seedOrdersSql = readFileSync(new URL('./seed-orders.sql', import.meta.url), 'utf8')
 const addOrderSql = readFileSync(new URL('./add-order.sql', import.meta.url), 'utf8')
 const contactSql = readFileSync(new URL('./contact.sql', import.meta.url), 'utf8')
+const shopStockSql = readFileSync(new URL('./shop-stock.sql', import.meta.url), 'utf8')
 
 let db
 const ALICE = '11111111-1111-1111-1111-111111111111'
@@ -513,5 +514,41 @@ describe('contact, updates and feedback', () => {
     // removing the message removes its replies
     await as('dashboard', () => db.query('delete from public.messages where id = $1', [message.id]))
     expect((await rows('select count(*)::int as n from public.message_replies where message_id = $1', [message.id]))[0].n).toBe(0)
+  })
+})
+
+describe('shop stock', () => {
+  it('sets up safely, twice, and leaves an empty shop with everything in stock', async () => {
+    await db.exec(shopStockSql)
+    await db.exec(shopStockSql)
+    expect((await rows('select count(*)::int as n from public.shop_stock'))[0].n).toBe(0)
+  })
+
+  it('lets the shop flag an item out of stock and put it back, and customers can read it', async () => {
+    await as('dashboard', () => db.query(
+      "insert into public.shop_stock (item_id, in_stock, note) values ('monstera', false, 'Back on Friday')",
+    ))
+    const flagged = await as(ALICE, () => rows('select item_id, in_stock, note from public.shop_stock'))
+    expect(flagged).toEqual([{ item_id: 'monstera', in_stock: false, note: 'Back on Friday' }])
+    // a different customer sees the same flags: stock is for everyone, not per person
+    expect((await as(BOB, () => rows('select count(*)::int as n from public.shop_stock where in_stock = false')))[0].n).toBe(1)
+
+    await as('dashboard', () => db.query("update public.shop_stock set in_stock = true where item_id = 'monstera'"))
+    expect((await as(ALICE, () => rows('select count(*)::int as n from public.shop_stock where in_stock = false')))[0].n).toBe(0)
+  })
+
+  it('refuses a flag with no item, and a note that is far too long', async () => {
+    await fails(as('dashboard', () => db.query("insert into public.shop_stock (item_id) values ('')")), /item_id_check|check constraint/i)
+    await fails(as('dashboard', () => db.query(
+      "insert into public.shop_stock (item_id, in_stock, note) values ('zz-plant', false, $1)",
+      ['x'.repeat(200)],
+    )), /check constraint/i)
+  })
+
+  it('cannot be written to from the app, and cannot be read while signed out', async () => {
+    await fails(as(ALICE, () => db.query("insert into public.shop_stock (item_id, in_stock) values ('snake-plant', false)")), /permission denied/i)
+    await fails(as(ALICE, () => db.query('update public.shop_stock set in_stock = false')), /permission denied/i)
+    await fails(as(ALICE, () => db.query('delete from public.shop_stock')), /permission denied/i)
+    await fails(as('anon', () => rows('select count(*)::int as n from public.shop_stock')), /permission denied/i)
   })
 })
