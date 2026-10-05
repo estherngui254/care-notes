@@ -171,16 +171,27 @@ export default function MyOrders({ orders, status, detail, refreshing, checkedAt
   const shown = term ? orders.filter((order) => order.code.includes(term)) : orders
 
   return (
-    <section className="orders no-print" id="orders" aria-labelledby="orders-heading">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">Track your deliveries</p>
-          <h2 id="orders-heading"><TruckIcon size={22} /> My orders {orders.length > 0 && <span className="count">{orders.length}</span>}</h2>
+    <details className="orders no-print" id="orders" open={orders.length === 0}>
+      <summary className="block-summary">
+        <TruckIcon size={20} /> My orders
+        {orders.length > 0 && <span className="count">{orders.length}</span>}
+        <span className="block-note">
+          {status === 'loading'
+            ? 'Loading…'
+            : orders.length === 0
+              ? 'Nothing ordered yet'
+              : orders.some((order) => !isFinished(order)) ? 'On their way' : 'All complete'}
+        </span>
+      </summary>
+      <div className="block-body">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Track your deliveries</p>
+          </div>
+          <button type="button" className="secondary" onClick={onRefresh} disabled={refreshing}>
+            {refreshing ? 'Checking…' : 'Check for updates'}
+          </button>
         </div>
-        <button type="button" className="secondary" onClick={onRefresh} disabled={refreshing}>
-          {refreshing ? 'Checking…' : 'Check for updates'}
-        </button>
-      </div>
 
       {status === 'setup' && <p className="notice" role="alert">{detail}</p>}
       {status === 'error' && (
@@ -216,6 +227,7 @@ export default function MyOrders({ orders, status, detail, refreshing, checkedAt
           )}
         </>
       )}
-    </section>
+      </div>
+    </details>
   )
 }

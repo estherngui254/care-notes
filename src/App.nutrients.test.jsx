@@ -97,7 +97,7 @@ describe('nutrient deficiency detection', () => {
 
   it('offers every guide group and includes the nutrient deficiencies', async () => {
     setup()
-    const guide = screen.getByRole('region', { name: /pest, disease and nutrient guide/i })
+    const guide = screen.getByText(/Pest, disease and nutrient guide/).closest('details')
     for (const title of ['Pests', 'Diseases', 'Nutrient deficiencies', 'Care problems']) {
       expect(within(guide).getByText(title, { selector: '.guide-section-title' })).toBeInTheDocument()
     }

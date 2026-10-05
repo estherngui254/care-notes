@@ -30,7 +30,7 @@ describe('plant health section', () => {
     const { user } = setup()
     await addFern(user)
     expect(screen.getByText(/no problems recorded for this plant/i)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /pest, disease and nutrient guide/i })).toBeInTheDocument()
+    expect(screen.getByText(/Pest, disease and nutrient guide/)).toBeInTheDocument()
     expect(screen.getByRole('rowheader', { name: 'Spider mites' })).toBeInTheDocument()
   })
 

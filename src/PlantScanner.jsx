@@ -265,8 +265,9 @@ export default function PlantScanner({ onSavePlant, identify = identifyPlant }) 
   }
 
   return (
-    <section className="panel scanner no-print" id="identify" aria-labelledby="scan-heading">
-      <h2 id="scan-heading"><CameraIcon size={22} /> Identify a plant from a photo</h2>
+    <details className="panel scanner no-print" id="identify">
+      <summary className="block-summary"><CameraIcon size={20} /> Identify a plant from a photo</summary>
+      <div className="block-body">
       <p className="hint">
         Take or choose up to {MAX_PHOTOS} photos of one plant: the whole plant, a close-up of a leaf, and any problem area.
         You get its name, care needs and a health check.
@@ -335,6 +336,7 @@ export default function PlantScanner({ onSavePlant, identify = identifyPlant }) 
           <button type="button" className="link" onClick={removeKey}>Remove key</button>
         </p>
       )}
-    </section>
+      </div>
+    </details>
   )
 }

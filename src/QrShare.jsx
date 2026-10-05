@@ -38,7 +38,9 @@ export default function QrShare() {
   }
 
   return (
-    <section className="share no-print" id="share" aria-labelledby="share-heading">
+    <details className="share no-print" id="share">
+      <summary className="block-summary"><QrIcon size={20} /> Open it on your phone</summary>
+      <div className="share-grid block-body">
       <div className="share-code">
         {svg ? (
           <div className="qr-code" role="img" aria-label={`QR code that opens ${SITE_NAME}`}
@@ -50,8 +52,6 @@ export default function QrShare() {
         )}
       </div>
       <div className="share-copy">
-        <p className="eyebrow">Share the app</p>
-        <h2 id="share-heading"><QrIcon size={22} /> Open it on your phone</h2>
         <p className="hint">
           Point your phone's camera at the code to open {SITE_NAME}. Share it with anyone who keeps plants.
           The app then installs from the browser menu and works offline.
@@ -63,6 +63,7 @@ export default function QrShare() {
         </div>
         {message && <p className="hint" role="status">{message}</p>}
       </div>
-    </section>
+      </div>
+    </details>
   )
 }

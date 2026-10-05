@@ -63,7 +63,7 @@ describe('Share section', () => {
     expect(screen.getByText(/making the qr code/i)).toBeInTheDocument()
     const code = await screen.findByRole('img', { name: /qr code that opens plant care notes/i })
     expect(code.querySelector('svg')).not.toBeNull()
-    expect(screen.getByRole('heading', { name: /open it on your phone/i })).toBeInTheDocument()
+    expect(screen.getByText(/Open it on your phone/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: SITE_URL })).toHaveAttribute('href', SITE_URL)
     expect(qrSvg).toHaveBeenCalledWith(SITE_URL)
   })

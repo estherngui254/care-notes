@@ -56,9 +56,9 @@ export default function PestGuide() {
   }
 
   return (
-    <section className="guide no-print" id="guide" aria-labelledby="guide-heading">
-      <p className="eyebrow">Field guide</p>
-      <h2 id="guide-heading"><BookIcon size={22} /> Pest, disease and nutrient guide</h2>
+    <details className="guide no-print" id="guide">
+      <summary className="block-summary"><BookIcon size={20} /> Pest, disease and nutrient guide</summary>
+      <div className="block-body">
       <p className="hint">
         Compare what you see on your plant with these descriptions. This is general guidance, not a diagnosis.
         Always follow the product label, keep treatments away from pets and children, and ask a local nursery
@@ -159,6 +159,7 @@ export default function PestGuide() {
           )
         })
       )}
-    </section>
+      </div>
+    </details>
   )
 }
