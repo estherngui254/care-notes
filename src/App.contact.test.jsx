@@ -5,7 +5,7 @@ import App from './App.jsx'
 import { fakeSupabase } from './test/fakeSupabase.js'
 
 const setup = () => ({ user: userEvent.setup({ applyAccept: false }), ...render(<App />) })
-const contact = () => within(screen.getByRole('region', { name: /contact, updates and feedback/i }))
+const contact = () => within(screen.getByRole('region', { name: /contact the shop/i }))
 const me = () => fakeSupabase.state.users[0]
 const postUpdate = (title, body) =>
   fakeSupabase.state.news.push({ id: crypto.randomUUID(), title, body, created_at: '2026-10-01T09:00:00.000Z' })
@@ -26,7 +26,7 @@ describe('the contact section', () => {
     expect(screen.getByRole('link', { name: 'Contact' })).toHaveAttribute('href', '#contact')
     expect(await screen.findByRole('heading', { name: 'Saturday seedlings' })).toBeInTheDocument()
     expect(screen.getByText(/arrive every Saturday/)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Write a message to the shop' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Write a message' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Reviews, complaints and compliments' })).toBeInTheDocument()
   })
 

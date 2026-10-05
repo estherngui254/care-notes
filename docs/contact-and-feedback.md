@@ -40,15 +40,23 @@ account** in the app) removes that person's messages and feedback with it.
 
 ## Replying to a customer
 
-Only the shop can reply, and only the customer the message belongs to can read the reply.
-**Table Editor → message_replies → Insert row**: `message_id` (copy it from the `messages` table)
-and `body`. Or from the SQL Editor:
+Start from your inbox. In the SQL Editor, this lists every message with the customer and how many
+replies it already has:
+
+```sql
+select m.id, u.email, m.created_at, m.subject, m.body,
+       (select count(*) from public.message_replies r where r.message_id = m.id) as replies
+from public.messages m
+join auth.users u on u.id = m.user_id
+order by m.created_at desc;
+```
+
+Copy the `id` of the message you are answering, then add the reply. Either **Table Editor →
+message_replies → Insert row** with `message_id` (that id) and `body`, or in the SQL Editor:
 
 ```sql
 insert into public.message_replies (message_id, body)
-select id, 'Hello, yes we are open on Sundays until 4 pm.'
-from public.messages
-where subject = 'Delivery question';
+values ('the-id-from-the-list', 'Hello, yes we are open on Sundays until 4 pm.');
 ```
 
 The customer sees the reply under their own message when they open **Contact**, or after pressing

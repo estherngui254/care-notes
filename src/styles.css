@@ -687,7 +687,7 @@ a.button-link:hover { filter: brightness(1.06); }
 
 /* ---------- Contact, updates and feedback ---------- */
 .contact { margin-top: 44px; }
-.contact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; align-items: start; }
+.contact-sections { display: grid; gap: 22px; max-width: 720px; }
 .contact .panel h3 { margin-top: 0; }
 .news-list { margin-top: 4px; }
 .news-item { padding: 12px 0; border-top: 1px dashed var(--line); }
@@ -695,7 +695,6 @@ a.button-link:hover { filter: brightness(1.06); }
 .news-item h4 { margin: 0 0 2px; font-size: 1rem; color: var(--heading); }
 .news-date { margin: 0 0 6px; font-size: .78rem; color: var(--muted); }
 .news-item p:last-child { margin-bottom: 0; }
-.contact-history { margin-top: 18px; }
 .thread-list { list-style: none; margin: 0; padding: 0; }
 .thread { padding: 14px 0; border-top: 1px dashed var(--line); }
 .thread:first-child { border-top: 0; padding-top: 0; }

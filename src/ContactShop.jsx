@@ -131,38 +131,46 @@ export default function ContactShop() {
       <div className="section-heading">
         <div>
           <p className="eyebrow">Talk to the shop</p>
-          <h2 id="contact-heading"><MailIcon size={22} /> Contact, updates and feedback</h2>
+          <h2 id="contact-heading"><MailIcon size={22} /> Contact the shop</h2>
         </div>
       </div>
-      <p className="hint">
-        Read the shop&apos;s latest updates, send a message, or leave a review, complaint or compliment.
-        What you write goes to the shop only: it is never shown to other customers.
-      </p>
+      <p className="hint">Messages and feedback are seen only by the shop.</p>
 
-      <div className="contact-grid">
-        <div className="panel contact-news">
-          <h3>Updates from the shop</h3>
-          {newsStatus === 'loading' && <p className="hint" role="status">Loading updates…</p>}
-          {newsStatus === 'error' && <p className="error" role="alert">{newsError}</p>}
-          {newsStatus === 'ready' && updates.length === 0 && (
-            <p className="hint">No updates yet. Check back soon.</p>
+      <div className="contact-sections">
+        <div className="panel">
+          <h3>Your messages</h3>
+          {mineStatus === 'loading' && <p className="hint" role="status">Loading your messages…</p>}
+          {mineStatus === 'error' && <p className="error" role="alert">{mineError}</p>}
+          {mineStatus === 'ready' && threads.length === 0 && (
+            <p className="hint">You have not sent any messages yet.</p>
           )}
-          {updates.length > 0 && (
-            <div className="news-list">
-              {updates.map((update) => (
-                <article className="news-item" key={update.id}>
-                  <h4>{update.title}</h4>
-                  <p className="news-date">{formatDateTime(update.created_at)}</p>
-                  <p>{update.body}</p>
-                </article>
+          {threads.length > 0 && (
+            <ul className="thread-list">
+              {threads.map((thread) => (
+                <li className="thread" key={thread.id}>
+                  <h4>{thread.subject}</h4>
+                  <p className="thread-date">You wrote this on {formatDateTime(thread.created_at)}</p>
+                  <p className="thread-body">{thread.body}</p>
+                  {thread.replies.length === 0 && <p className="hint">No reply from the shop yet.</p>}
+                  {thread.replies.map((reply) => (
+                    <blockquote className="thread-reply" key={reply.id}>
+                      <p className="thread-date">Reply from the shop, {formatDateTime(reply.created_at)}</p>
+                      <p>{reply.body}</p>
+                    </blockquote>
+                  ))}
+                </li>
               ))}
+            </ul>
+          )}
+          {threads.length > 0 && (
+            <div className="actions">
+              <button type="button" className="secondary" onClick={loadMessages}>Check for replies</button>
             </div>
           )}
         </div>
 
         <div className="panel">
-          <h3>Write a message to the shop</h3>
-          <p className="hint">Questions about an order, a plant or the shop itself: send a message and the shop will see it.</p>
+          <h3>Write a message</h3>
           <form onSubmit={submitMessage} noValidate>
             <label htmlFor="message-subject">Subject</label>
             <input id="message-subject" name="subject" value={subject} onChange={changeSubject}
@@ -186,10 +194,28 @@ export default function ContactShop() {
             {messageSent && <p className="hint" role="status">{messageSent}</p>}
           </form>
         </div>
+<div className="panel">
+          <h3>Updates from the shop</h3>
+          {newsStatus === 'loading' && <p className="hint" role="status">Loading updates…</p>}
+          {newsStatus === 'error' && <p className="error" role="alert">{newsError}</p>}
+          {newsStatus === 'ready' && updates.length === 0 && (
+            <p className="hint">No updates yet. Check back soon.</p>
+          )}
+          {updates.length > 0 && (
+            <div className="news-list">
+              {updates.map((update) => (
+                <article className="news-item" key={update.id}>
+                  <h4>{update.title}</h4>
+                  <p className="news-date">{formatDateTime(update.created_at)}</p>
+                  <p>{update.body}</p>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="panel">
           <h3>Reviews, complaints and compliments</h3>
-          <p className="hint">Tell the shop what went well or what could be better. Only the shop reads these.</p>
           <form onSubmit={submitFeedback} noValidate>
             <fieldset className="category">
               <legend>What are you writing about?</legend>
@@ -231,40 +257,6 @@ export default function ContactShop() {
             {feedbackSent && <p className="hint" role="status">{feedbackSent}</p>}
           </form>
         </div>
-      </div>
-
-      <div className="panel contact-history">
-        <div className="section-heading">
-          <div>
-            <h3>Your messages and the shop&apos;s replies</h3>
-          </div>
-          {threads.length > 0 && (
-            <button type="button" className="secondary" onClick={loadMessages}>Check for replies</button>
-          )}
-        </div>
-        {mineStatus === 'loading' && <p className="hint" role="status">Loading your messages…</p>}
-        {mineStatus === 'error' && <p className="error" role="alert">{mineError}</p>}
-        {mineStatus === 'ready' && threads.length === 0 && (
-          <p className="hint">Nothing sent yet. Anything you write appears here, with the shop&apos;s reply.</p>
-        )}
-        {threads.length > 0 && (
-          <ul className="thread-list">
-            {threads.map((thread) => (
-              <li className="thread" key={thread.id}>
-                <h4>{thread.subject}</h4>
-                <p className="thread-date">You wrote this on {formatDateTime(thread.created_at)}</p>
-                <p className="thread-body">{thread.body}</p>
-                {thread.replies.length === 0 && <p className="hint">No reply from the shop yet.</p>}
-                {thread.replies.map((reply) => (
-                  <blockquote className="thread-reply" key={reply.id}>
-                    <p className="thread-date">Reply from the shop, {formatDateTime(reply.created_at)}</p>
-                    <p>{reply.body}</p>
-                  </blockquote>
-                ))}
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
     </section>
   )
