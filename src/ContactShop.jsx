@@ -194,25 +194,30 @@ export default function ContactShop() {
             {messageSent && <p className="hint" role="status">{messageSent}</p>}
           </form>
         </div>
-<div className="panel">
-          <h3>Updates from the shop</h3>
-          {newsStatus === 'loading' && <p className="hint" role="status">Loading updates…</p>}
-          {newsStatus === 'error' && <p className="error" role="alert">{newsError}</p>}
-          {newsStatus === 'ready' && updates.length === 0 && (
-            <p className="hint">No updates yet. Check back soon.</p>
-          )}
-          {updates.length > 0 && (
-            <div className="news-list">
-              {updates.map((update) => (
-                <article className="news-item" key={update.id}>
-                  <h4>{update.title}</h4>
-                  <p className="news-date">{formatDateTime(update.created_at)}</p>
-                  <p>{update.body}</p>
-                </article>
-              ))}
-            </div>
-          )}
-        </div>
+<details className="panel contact-updates">
+          <summary>
+            Updates from the shop
+            {updates.length > 0 && <span className="updates-count">{updates.length}</span>}
+          </summary>
+          <div className="updates-body">
+            {newsStatus === 'loading' && <p className="hint" role="status">Loading updates…</p>}
+            {newsStatus === 'error' && <p className="error" role="alert">{newsError}</p>}
+            {newsStatus === 'ready' && updates.length === 0 && (
+              <p className="hint">No updates yet. Check back soon.</p>
+            )}
+            {updates.length > 0 && (
+              <div className="news-list">
+                {updates.map((update) => (
+                  <article className="news-item" key={update.id}>
+                    <h4>{update.title}</h4>
+                    <p className="news-date">{formatDateTime(update.created_at)}</p>
+                    <p>{update.body}</p>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </details>
 
         <div className="panel">
           <h3>Reviews, complaints and compliments</h3>

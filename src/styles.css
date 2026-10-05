@@ -689,6 +689,21 @@ a.button-link:hover { filter: brightness(1.06); }
 .contact { margin-top: 44px; }
 .contact-sections { display: grid; gap: 22px; max-width: 720px; }
 .contact .panel h3 { margin-top: 0; }
+.contact-updates { padding: 0; }
+.contact-updates > summary {
+  list-style: none; display: flex; align-items: center; gap: 12px; cursor: pointer;
+  padding: 18px 26px; font-weight: 600; font-size: 1.05rem; color: var(--heading); border-radius: var(--radius);
+}
+.contact-updates > summary::-webkit-details-marker { display: none; }
+.contact-updates > summary:hover { background: var(--surface-2); }
+.contact-updates > summary::after {
+  content: ""; width: 8px; height: 8px; margin-right: 4px; flex-shrink: 0;
+  border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent);
+  transform: rotate(45deg); transition: transform .2s;
+}
+.contact-updates[open] > summary::after { transform: rotate(225deg); }
+.updates-count { margin-left: auto; font-size: .8rem; font-weight: 600; color: var(--muted); }
+.updates-body { padding: 0 26px 20px; }
 .news-list { margin-top: 4px; }
 .news-item { padding: 12px 0; border-top: 1px dashed var(--line); }
 .news-item:first-child { border-top: 0; padding-top: 2px; }

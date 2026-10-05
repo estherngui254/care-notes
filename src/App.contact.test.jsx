@@ -22,8 +22,9 @@ const shopReply = (message, body) =>
 describe('the contact section', () => {
   it('is in the navigation and reads the shop updates', async () => {
     postUpdate('Saturday seedlings', 'Fresh herb and vegetable seedlings arrive every Saturday morning.')
-    setup()
+    const { user } = setup()
     expect(screen.getByRole('link', { name: 'Contact' })).toHaveAttribute('href', '#contact')
+    await user.click(contact().getByText(/Updates from the shop/))
     expect(await screen.findByRole('heading', { name: 'Saturday seedlings' })).toBeInTheDocument()
     expect(screen.getByText(/arrive every Saturday/)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Write a message' })).toBeInTheDocument()
@@ -31,7 +32,8 @@ describe('the contact section', () => {
   })
 
   it('says so when the shop has posted no updates', async () => {
-    setup()
+    const { user } = setup()
+    await user.click(contact().getByText(/Updates from the shop/))
     expect(await screen.findByText(/no updates yet/i)).toBeInTheDocument()
   })
 
